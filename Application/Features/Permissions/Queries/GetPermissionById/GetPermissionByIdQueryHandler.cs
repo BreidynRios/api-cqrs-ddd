@@ -1,10 +1,10 @@
 ﻿using Application.Commons.Exceptions;
 using Application.Commons.Utils;
 using Application.DTOs.ServicesClients.ElasticSearch;
-using Application.Interfaces.Common;
 using Application.Interfaces.ServicesClients;
 using AutoMapper;
 using Domain.Entities;
+using Domain.Repositories;
 using MediatR;
 
 namespace Application.Features.Permissions.Queries.GetPermissionById
@@ -12,28 +12,27 @@ namespace Application.Features.Permissions.Queries.GetPermissionById
     public class GetPermissionByIdQueryHandler
         : IRequestHandler<GetPermissionByIdQuery, GetPermissionByIdDto>
     {
-        private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly IElasticSearchServiceClient _elasticSearchServiceClient;
+        private readonly IPermissionRepository _permissionRepository;
 
         public GetPermissionByIdQueryHandler(
-            IUnitOfWork unitOfWork,
             IMapper mapper,
-            IElasticSearchServiceClient elasticSearchServiceClient)
+            IElasticSearchServiceClient elasticSearchServiceClient,
+            IPermissionRepository permissionRepository)
         {
-            _unitOfWork = unitOfWork;
             _mapper = mapper;
             _elasticSearchServiceClient = elasticSearchServiceClient;
+            _permissionRepository = permissionRepository;
         }
 
         public async Task<GetPermissionByIdDto> Handle(
             GetPermissionByIdQuery request, CancellationToken cancellationToken)
         {
-            var permission = await _unitOfWork
-                .PermissionRepository
+            var permission = await _permissionRepository
                 .GetPermissionWithEmployeeTypeAsync(request.Id, cancellationToken);
             if (permission is null)
-                throw new NotFoundException(nameof(permission), request.Id);
+                throw new NotFoundException("Permission wasn't found");
 
             await ElasticSearchCreateDocument(permission, cancellationToken);
             return _mapper.Map<GetPermissionByIdDto>(permission);
@@ -49,9 +48,9 @@ namespace Application.Features.Permissions.Queries.GetPermissionById
                 EmployeeId = permission.EmployeeId,
                 PermissionTypeId = permission.PermissionTypeId,
                 CreatedBy = permission.CreatedBy,
-                CreatedDate = permission.CreatedDate,
+                CreatedDateOnUtc = permission.CreatedDateOnUtc,
                 UpdatedBy = permission.UpdatedBy,
-                UpdatedDate = permission.UpdatedDate,
+                UpdatedDateOnUtc = permission.UpdatedDateOnUtc,
             }, cancellationToken);
         }
     }

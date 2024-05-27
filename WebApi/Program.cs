@@ -7,7 +7,7 @@ using WebApi.Extensions;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.ConfigureServices(builder.Configuration);
+builder.Services.AddPresentationLayer(builder.Configuration);
 builder.Services.AddApplicationLayer();
 builder.Services.AddPersistenceLayer(builder.Configuration);
 builder.Services.AddInfrastructureLayer(builder.Configuration);
@@ -22,7 +22,7 @@ app.UseSwagger();
 
 app.UseSwaggerUI();
 
-app.UseCustomExceptionHandler();
+app.UseExceptionHandler();
 
 app.UseAuthorization();
 

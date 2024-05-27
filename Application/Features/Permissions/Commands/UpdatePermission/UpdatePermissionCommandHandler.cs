@@ -1,9 +1,9 @@
 ﻿using Application.Commons.Exceptions;
 using Application.Commons.Utils;
 using Application.DTOs.ServicesClients.ElasticSearch;
-using Application.Interfaces.Common;
 using Application.Interfaces.ServicesClients;
 using Domain.Entities;
+using Domain.Repositories;
 using MediatR;
 
 namespace Application.Features.Permissions.Commands.UpdatePermission
@@ -13,25 +13,33 @@ namespace Application.Features.Permissions.Commands.UpdatePermission
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IElasticSearchServiceClient _elasticSearchServiceClient;
+        private readonly IPermissionRepository _permissionRepository;
+        private readonly IEmployeeRepository _employeeRepository;
+        private readonly IPermissionTypeRepository _permissionTypeRepository;
 
         public UpdatePermissionCommandHandler(
             IUnitOfWork unitOfWork,
-            IElasticSearchServiceClient elasticSearchServiceClient)
+            IElasticSearchServiceClient elasticSearchServiceClient,
+            IPermissionRepository permissionRepository,
+            IEmployeeRepository employeeRepository,
+            IPermissionTypeRepository permissionTypeRepository)
         {
             _unitOfWork = unitOfWork;
             _elasticSearchServiceClient = elasticSearchServiceClient;
+            _permissionRepository = permissionRepository;
+            _employeeRepository = employeeRepository;
+            _permissionTypeRepository = permissionTypeRepository;
         }
 
         public async Task Handle(UpdatePermissionCommand request,
             CancellationToken cancellationToken)
         {
             await Validate(request, cancellationToken);
-            var permission = await _unitOfWork
-                .PermissionRepository
+            var permission = await _permissionRepository
                 .GetByIdAsync(request.Id, cancellationToken);
 
             AssignPermission(permission, request);
-            await _unitOfWork.PermissionRepository.UpdateAsync(permission);
+            _permissionRepository.Update(permission);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             await ElasticSearchCreateDocument(permission, cancellationToken);
         }
@@ -39,17 +47,15 @@ namespace Application.Features.Permissions.Commands.UpdatePermission
         protected internal virtual async Task Validate(UpdatePermissionCommand request,
             CancellationToken cancellationToken)
         {
-            var employee = await _unitOfWork
-                .EmployeeRepository
+            var employee = await _employeeRepository
                 .GetByIdAsync(request.EmployeeId, cancellationToken);
             if (employee is null)
-                throw new NotFoundException(nameof(employee), request.EmployeeId);
+                throw new NotFoundException("Employee wasn't found");
 
-            var permissionType = await _unitOfWork
-                .PermissionTypeRepository
+            var permissionType = await _permissionTypeRepository
                 .GetByIdAsync(request.PermissionTypeId, cancellationToken);
             if (permissionType is null)
-                throw new NotFoundException(nameof(permissionType), request.PermissionTypeId);
+                throw new NotFoundException("Permission type wasn't found");
         }
 
         protected internal virtual void AssignPermission(
@@ -58,7 +64,6 @@ namespace Application.Features.Permissions.Commands.UpdatePermission
             permission.EmployeeId = request.EmployeeId;
             permission.PermissionTypeId = request.PermissionTypeId;
             permission.UpdatedBy = 1;
-            permission.UpdatedDate = DateTime.UtcNow;
         }
 
         protected internal virtual async Task ElasticSearchCreateDocument(
@@ -71,9 +76,9 @@ namespace Application.Features.Permissions.Commands.UpdatePermission
                 EmployeeId = permission.EmployeeId,
                 PermissionTypeId = permission.PermissionTypeId,
                 CreatedBy = permission.CreatedBy,
-                CreatedDate = permission.CreatedDate,
+                CreatedDateOnUtc = permission.CreatedDateOnUtc,
                 UpdatedBy = permission.UpdatedBy,
-                UpdatedDate = permission.UpdatedDate,
+                UpdatedDateOnUtc = permission.UpdatedDateOnUtc,
             }, cancellationToken);
         }
     }

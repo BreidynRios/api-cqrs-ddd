@@ -1,25 +1,12 @@
-﻿namespace Application.Commons.Exceptions
+﻿using Microsoft.AspNetCore.Http;
+
+namespace Application.Commons.Exceptions
 {
-    public class NotFoundException : Exception
+    public class NotFoundException(string message) : 
+        BaseException(
+            StatusCodes.Status404NotFound,
+            "Not Found",
+            message)
     {
-        public NotFoundException()
-            : base()
-        {
-        }
-
-        public NotFoundException(string message)
-            : base(message)
-        {
-        }
-
-        public NotFoundException(string message, Exception innerException)
-            : base(message, innerException)
-        {
-        }
-
-        public NotFoundException(string name, object key)
-            : base($"Entity \"{name}\" ({key}) was not found.")
-        {
-        }
     }
 }

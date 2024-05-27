@@ -1,6 +1,6 @@
 ﻿using Application.Commons.Exceptions;
-using Application.Interfaces.Common;
 using AutoMapper;
+using Domain.Repositories;
 using MediatR;
 
 namespace Application.Features.Employees.Queries.GetEmployeeById
@@ -8,24 +8,24 @@ namespace Application.Features.Employees.Queries.GetEmployeeById
     public class GetEmployeeByIdQueryHandler
         : IRequestHandler<GetEmployeeByIdQuery, GetEmployeeByIdDto>
     {
-        private readonly IUnitOfWork _unitOfWork;
+        private readonly IEmployeeRepository _employeeRepository;
         private readonly IMapper _mapper;
+
         public GetEmployeeByIdQueryHandler(
-            IUnitOfWork unitOfWork,
+            IEmployeeRepository employeeRepository,
             IMapper mapper)
         {
-            _unitOfWork = unitOfWork;
+            _employeeRepository = employeeRepository;
             _mapper = mapper;
         }
 
         public async Task<GetEmployeeByIdDto> Handle(
             GetEmployeeByIdQuery request, CancellationToken cancellationToken)
         {
-            var employee = await _unitOfWork
-                .EmployeeRepository
+            var employee = await _employeeRepository
                 .GetEmployeeWithPermissionsAsync(request.Id, cancellationToken);
             if (employee is null)
-                throw new NotFoundException(nameof(employee), request.Id);
+                throw new NotFoundException("Employee wasn't found");
 
             return _mapper.Map<GetEmployeeByIdDto>(employee);
         }

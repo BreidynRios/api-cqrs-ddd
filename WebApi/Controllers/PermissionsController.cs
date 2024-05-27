@@ -15,16 +15,13 @@ namespace WebApi.Controllers
     {
         private readonly IMediator _mediator;
         private readonly IKafkaServiceClient _kafkaServiceClient;
-        private readonly ILogger<PermissionsController> _logger;
 
         public PermissionsController(
             IMediator mediator,
-            IKafkaServiceClient kafkaServiceClient,
-            ILogger<PermissionsController> logger)
+            IKafkaServiceClient kafkaServiceClient)
         {
             _mediator = mediator;
             _kafkaServiceClient = kafkaServiceClient;
-            _logger = logger;
         }
 
         [HttpGet("{id}")]
@@ -33,9 +30,8 @@ namespace WebApi.Controllers
         {
             await _kafkaServiceClient.ProduceAsync(
                 new PermissionTopicParameter<int>(Constants.Get, id), cancellationToken);
-            _logger.LogInformation($"Method: {nameof(GetPermissionByIdQueryAsync)}, Parameter: {new { id }}");
 
-            return Ok(await _mediator.Send(new GetPermissionByIdQuery(id)));
+            return Ok(await _mediator.Send(new GetPermissionByIdQuery(id), cancellationToken));
         }
 
         [HttpPost]
@@ -44,9 +40,8 @@ namespace WebApi.Controllers
         {
             await _kafkaServiceClient.ProduceAsync(new PermissionTopicParameter<CreatePermissionCommand>
                 (Constants.Request, command), cancellationToken);
-            _logger.LogInformation($"Method: {nameof(CreateAsync)}, Parameter: {command}");
 
-            return Ok(await _mediator.Send(command));
+            return Ok(await _mediator.Send(command, cancellationToken));
         }
 
         [HttpPut("{id}")]
@@ -56,8 +51,7 @@ namespace WebApi.Controllers
             command.Id = id;
             await _kafkaServiceClient.ProduceAsync(new PermissionTopicParameter<UpdatePermissionCommand>
                 (Constants.Modify, command), cancellationToken);
-            _logger.LogInformation($"Method: {nameof(UpdateAsync)}, Parameter: {command}");
-            await _mediator.Send(command);
+            await _mediator.Send(command, cancellationToken);
         }
     }
 }

@@ -1,10 +1,10 @@
 ﻿namespace Domain.Common.Interfaces
 {
-    internal interface IAuditableEntity : IEntity
+    public interface IAuditableEntity : IEntity
     {
         int CreatedBy { get; set; }
-        DateTime CreatedDate { get; set; }
+        DateTime CreatedDateOnUtc { get; set; }
         int? UpdatedBy { get; set; }
-        DateTime? UpdatedDate { get; set; }
+        DateTime? UpdatedDateOnUtc { get; set; }
     }
 }

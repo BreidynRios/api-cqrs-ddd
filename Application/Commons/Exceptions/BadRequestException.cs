@@ -1,27 +1,12 @@
-﻿namespace Application.Commons.Exceptions
+﻿using Microsoft.AspNetCore.Http;
+
+namespace Application.Commons.Exceptions
 {
-    public class BadRequestException : Exception
+    public class BadRequestException(string message) :
+        BaseException(
+            StatusCodes.Status400BadRequest,
+            "Bad Request",
+            message)
     {
-        public string[] Errors { get; set; }
-
-        public BadRequestException()
-            : base()
-        {
-        }
-
-        public BadRequestException(string message)
-            : base(message)
-        {
-        }
-
-        public BadRequestException(string message, Exception innerException)
-            : base(message, innerException)
-        {
-        }
-
-        public BadRequestException(string[] errors) : base("Multiple errors occurred. See error details.")
-        {
-            Errors = errors;
-        }
     }
 }

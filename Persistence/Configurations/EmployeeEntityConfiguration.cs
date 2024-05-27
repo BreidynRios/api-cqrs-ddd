@@ -35,7 +35,7 @@ namespace Persistence.Configurations
             builder.Property(e => e.CreatedBy)
                 .HasColumnName("CreatedBy");
 
-            builder.Property(e => e.CreatedDate)
+            builder.Property(e => e.CreatedDateOnUtc)
                 .HasColumnName("CreatedDate")
                 .HasColumnType("datetime");
 
@@ -43,7 +43,7 @@ namespace Persistence.Configurations
                 .HasColumnName("UpdatedBy")
                 .IsRequired(false);
 
-            builder.Property(e => e.UpdatedDate)
+            builder.Property(e => e.UpdatedDateOnUtc)
                 .HasColumnName("UpdatedDate")
                 .HasColumnType("datetime")
                 .IsRequired(false);

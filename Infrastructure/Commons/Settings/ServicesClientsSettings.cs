@@ -10,11 +10,13 @@
     {
         public string Host { get; set; }
         public string DefaultIndex { get; set; }
+        public bool Active { get; set; }
     }
 
     public class KafkaProducerServices
     {
         public string BootstrapServers { get; set; }
         public string Topic { get; set; }
+        public bool Active { get; set; }
     }
 }

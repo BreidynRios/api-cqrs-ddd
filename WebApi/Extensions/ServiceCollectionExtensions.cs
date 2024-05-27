@@ -1,17 +1,16 @@
-﻿using Application.Commons.Exceptions;
-using Microsoft.AspNetCore.Diagnostics;
-using Microsoft.EntityFrameworkCore;
-using Newtonsoft.Json;
+﻿using Microsoft.EntityFrameworkCore;
 using Serilog;
-using System.Net;
+using WebApi.Middlewares;
 
 namespace WebApi.Extensions
 {
     public static class ServiceCollectionExtensions
     {
-        public static void ConfigureServices(this IServiceCollection services, IConfiguration configuration)
+        public static void AddPresentationLayer(this IServiceCollection services, IConfiguration configuration)
         {
             services.AddLoggerSeriLog(configuration);
+            services.AddExceptionHandler<GlobalExceptionHandler>();
+            services.AddProblemDetails();
         }
 
         public static void AddLoggerSeriLog(this IServiceCollection services, IConfiguration configuration)
@@ -25,28 +24,6 @@ namespace WebApi.Extensions
                 loggingBuilder.ClearProviders();
                 loggingBuilder.AddSerilog(logger, dispose: true);
             });
-        }
-
-        public static void UseCustomExceptionHandler(this IApplicationBuilder app)
-        {
-            app.UseExceptionHandler(c => c.Run(async context =>
-            {
-                var exception = context.Features
-                                .Get<IExceptionHandlerPathFeature>()?
-                                .Error;
-                if (exception is null) return;
-
-                context.Response.ContentType = "application/json";
-                context.Response.StatusCode = exception switch
-                {
-                    NotFoundException => (int)HttpStatusCode.NotFound,
-                    BadRequestException => (int)HttpStatusCode.BadRequest,
-                    _ => (int)HttpStatusCode.InternalServerError
-                };
-                
-                var result = JsonConvert.SerializeObject(new { error = exception.Message });
-                await context.Response.WriteAsync(result);
-            }));
         }
 
         public static IHost MigrateDatabase<T>(this IHost host, IConfiguration configuration) where T : DbContext

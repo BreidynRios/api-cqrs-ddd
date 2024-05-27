@@ -17,15 +17,17 @@ namespace WebApi.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<GetAllPermissionTypesDto>>> GetAsync()
+        public async Task<ActionResult<IEnumerable<GetAllPermissionTypesDto>>> GetAsync(
+            CancellationToken cancellationToken)
         {
-            return Ok(await _mediator.Send(new GetAllPermissionTypesQuery()));
+            return Ok(await _mediator.Send(new GetAllPermissionTypesQuery(), cancellationToken));
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<GetPermissionTypeByIdDto>> GetPermissionTypeByIdAsync(int id)
+        public async Task<ActionResult<GetPermissionTypeByIdDto>> GetPermissionTypeByIdAsync(
+            int id, CancellationToken cancellationToken)
         {
-            return Ok(await _mediator.Send(new GetPermissionTypeByIdQuery(id)));
+            return Ok(await _mediator.Send(new GetPermissionTypeByIdQuery(id), cancellationToken));
         }
     }
 }
