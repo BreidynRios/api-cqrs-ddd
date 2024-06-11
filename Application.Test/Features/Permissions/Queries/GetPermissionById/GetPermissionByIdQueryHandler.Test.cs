@@ -1,11 +1,11 @@
 ﻿using Application.Commons.Exceptions;
 using Application.DTOs.ServicesClients.ElasticSearch;
 using Application.Features.Permissions.Queries.GetPermissionById;
-using Application.Interfaces.Common;
 using Application.Interfaces.ServicesClients;
 using Application.Test.Configurations.AutoMoq;
 using AutoFixture.Xunit2;
 using Domain.Entities;
+using Domain.Repositories;
 using FluentAssertions;
 using Moq;
 using Xunit;
@@ -18,13 +18,14 @@ namespace Application.Test.Features.Permissions.Queries.GetPermissionById
 
         [Theory(DisplayName = "When permission don't exist, it will return an error"), AutoMoq]
         public async Task Handle_NotFound(
-            [Frozen] Mock<IUnitOfWork> mockIUnitOfWork,
+            [Frozen] Mock<IPermissionRepository> mockIPermissionRepository,
             GetPermissionByIdQuery request,
             GetPermissionByIdQueryHandler sut)
         {
             //ARRANGE
-            mockIUnitOfWork.Setup(x => x.PermissionRepository
-                .GetPermissionWithEmployeeTypeAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            const string errorMessage = "Permission wasn't found";
+            mockIPermissionRepository.Setup(x => x.GetPermissionWithEmployeeTypeAsync(
+                It.IsAny<int>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(null as Permission);
 
             //ACT
@@ -33,21 +34,21 @@ namespace Application.Test.Features.Permissions.Queries.GetPermissionById
             //ASSERT
             await actual.Should()
                 .ThrowAsync<NotFoundException>()
-                .Where(m => m.Message.Contains(request.Id.ToString()));
-            mockIUnitOfWork.Verify(x => x.PermissionRepository
-                .GetPermissionWithEmployeeTypeAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
+                .Where(m => m.Message == errorMessage);
+            mockIPermissionRepository.Verify(x => x.GetPermissionWithEmployeeTypeAsync(
+                It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
         }
 
         [Theory(DisplayName = "When permission exist, it will return his information"), AutoMoq]
         public async Task Handle_Ok(
             Permission permission,
-            [Frozen] Mock<IUnitOfWork> mockIUnitOfWork,
+            [Frozen] Mock<IPermissionRepository> mockIPermissionRepository,
             GetPermissionByIdQuery request,
             [Frozen] Mock<GetPermissionByIdQueryHandler> sutMock)
         {
             //ARRANGE
-            mockIUnitOfWork.Setup(x => x.PermissionRepository
-                .GetPermissionWithEmployeeTypeAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            mockIPermissionRepository.Setup(x => x.GetPermissionWithEmployeeTypeAsync(
+                It.IsAny<int>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(permission);
 
             sutMock.Setup(x => x.ElasticSearchCreateDocument(It.IsAny<Permission>(), It.IsAny<CancellationToken>()))
@@ -58,8 +59,8 @@ namespace Application.Test.Features.Permissions.Queries.GetPermissionById
 
             //ASSERT
             actual.Should().NotBeNull();
-            mockIUnitOfWork.Verify(x => x.PermissionRepository
-                .GetPermissionWithEmployeeTypeAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
+            mockIPermissionRepository.Verify(x => x.GetPermissionWithEmployeeTypeAsync(
+                It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
             sutMock.Verify(x => x.ElasticSearchCreateDocument(
                 It.IsAny<Permission>(), It.IsAny<CancellationToken>()), Times.Once);
         }

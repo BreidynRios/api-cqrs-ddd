@@ -1,9 +1,9 @@
 ﻿using Application.Commons.Exceptions;
 using Application.Features.Employees.Queries.GetEmployeeById;
-using Application.Interfaces.Common;
 using Application.Test.Configurations.AutoMoq;
 using AutoFixture.Xunit2;
 using Domain.Entities;
+using Domain.Repositories;
 using FluentAssertions;
 using Moq;
 using Xunit;
@@ -14,13 +14,14 @@ namespace Application.Test.Features.Employees.Queries.GetEmployeeById
     {
         [Theory(DisplayName = "When employee don't exist, it will return an error"), AutoMoq]
         public async Task Handle_NotFound(
-            [Frozen] Mock<IUnitOfWork> mockIUnitOfWork,
+            [Frozen] Mock<IEmployeeRepository> mockIEmployeeRepository,
             GetEmployeeByIdQuery request,
             GetEmployeeByIdQueryHandler sut)
         {
             //ARRANGE
-            mockIUnitOfWork.Setup(x => x.EmployeeRepository
-                .GetEmployeeWithPermissionsAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            const string errorMessage = "Employee wasn't found";
+            mockIEmployeeRepository.Setup(x => x.GetEmployeeWithPermissionsAsync(
+                It.IsAny<int>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(null as Employee);
 
             //ACT
@@ -29,21 +30,21 @@ namespace Application.Test.Features.Employees.Queries.GetEmployeeById
             //ASSERT
             await actual.Should()
                 .ThrowAsync<NotFoundException>()
-                .Where(m => m.Message.Contains(request.Id.ToString()));
-            mockIUnitOfWork.Verify(x => x.EmployeeRepository
-                .GetEmployeeWithPermissionsAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
+                .Where(m => m.Message == errorMessage);
+            mockIEmployeeRepository.Verify(x => x.GetEmployeeWithPermissionsAsync(
+                It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
         }
 
         [Theory(DisplayName = "When employee exist, it will return his information"), AutoMoq]
         public async Task Handle_Ok(
             Employee employee,
-            [Frozen] Mock<IUnitOfWork> mockIUnitOfWork,
+            [Frozen] Mock<IEmployeeRepository> mockIEmployeeRepository,
             GetEmployeeByIdQuery request,
             GetEmployeeByIdQueryHandler sut)
         {
             //ARRANGE
-            mockIUnitOfWork.Setup(x => x.EmployeeRepository
-                .GetEmployeeWithPermissionsAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            mockIEmployeeRepository.Setup(x => x.GetEmployeeWithPermissionsAsync(
+                It.IsAny<int>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(employee);
 
             //ACT
@@ -51,8 +52,8 @@ namespace Application.Test.Features.Employees.Queries.GetEmployeeById
 
             //ASSERT
             actual.Should().NotBeNull();
-            mockIUnitOfWork.Verify(x => x.EmployeeRepository
-                .GetEmployeeWithPermissionsAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
+            mockIEmployeeRepository.Verify(x => x.GetEmployeeWithPermissionsAsync(
+                It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
         }
     }
 }

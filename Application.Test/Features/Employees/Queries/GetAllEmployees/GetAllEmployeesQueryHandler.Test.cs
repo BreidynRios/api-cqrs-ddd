@@ -1,8 +1,8 @@
 ﻿using Application.Features.Employees.Queries.GetAllEmployees;
-using Application.Interfaces.Common;
 using Application.Test.Configurations.AutoMoq;
 using AutoFixture.Xunit2;
 using Domain.Entities;
+using Domain.Repositories;
 using FluentAssertions;
 using Moq;
 using Xunit;
@@ -14,12 +14,12 @@ namespace Application.Test.Features.Employees.Queries.GetAllEmployees
         [Theory(DisplayName = "When data exists, it will return the list"), AutoMoq]
         public async Task Handle_Ok(
             [CollectionSize(5)] List<Employee> employees,
-            [Frozen] Mock<IUnitOfWork> mockIUnitOfWork,
+            [Frozen] Mock<IEmployeeRepository> mockIEmployeeRepository,
             GetAllEmployeesQuery request,
             GetAllEmployeesQueryHandler sut)
         {
             //ARRANGE
-            mockIUnitOfWork.Setup(x => x.EmployeeRepository.GetAllAsync(It.IsAny<CancellationToken>()))
+            mockIEmployeeRepository.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
                 .ReturnsAsync(employees);
 
             //ACT
@@ -28,7 +28,7 @@ namespace Application.Test.Features.Employees.Queries.GetAllEmployees
             //ASSERT
             actual.Should().NotBeNull();
             actual.Should().HaveCount(5);
-            mockIUnitOfWork.Verify(x => x.EmployeeRepository.GetAllAsync(It.IsAny<CancellationToken>()), Times.Once);
+            mockIEmployeeRepository.Verify(x => x.GetAllAsync(It.IsAny<CancellationToken>()), Times.Once);
         }
     }
 }

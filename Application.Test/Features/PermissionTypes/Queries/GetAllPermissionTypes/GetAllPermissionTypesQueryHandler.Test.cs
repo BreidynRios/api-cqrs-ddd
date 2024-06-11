@@ -1,8 +1,8 @@
 ﻿using Application.Features.PermissionTypes.Queries.GetAllPermissionTypes;
-using Application.Interfaces.Common;
 using Application.Test.Configurations.AutoMoq;
 using AutoFixture.Xunit2;
 using Domain.Entities;
+using Domain.Repositories;
 using FluentAssertions;
 using Moq;
 using Xunit;
@@ -14,12 +14,12 @@ namespace Application.Test.Features.PermissionTypes.Queries.GetAllPermissionType
         [Theory(DisplayName = "When data exists, it will return the list"), AutoMoq]
         public async Task Handle_Ok(
             [CollectionSize(5)] List<PermissionType> permissionTypes,
-            [Frozen] Mock<IUnitOfWork> mockIUnitOfWork,
+            [Frozen] Mock<IPermissionTypeRepository> mockIPermissionTypeRepository,
             GetAllPermissionTypesQuery request,
             GetAllPermissionTypesQueryHandler sut)
         {
             //ARRANGE
-            mockIUnitOfWork.Setup(x => x.PermissionTypeRepository.GetAllAsync(It.IsAny<CancellationToken>()))
+            mockIPermissionTypeRepository.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
                 .ReturnsAsync(permissionTypes);
 
             //ACT
@@ -28,7 +28,7 @@ namespace Application.Test.Features.PermissionTypes.Queries.GetAllPermissionType
             //ASSERT
             actual.Should().NotBeNull();
             actual.Should().HaveCount(5);
-            mockIUnitOfWork.Verify(x => x.PermissionTypeRepository.GetAllAsync(It.IsAny<CancellationToken>()), Times.Once);
+            mockIPermissionTypeRepository.Verify(x => x.GetAllAsync(It.IsAny<CancellationToken>()), Times.Once);
         }
     }
 }

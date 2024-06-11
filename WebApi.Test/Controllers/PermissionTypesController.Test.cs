@@ -24,7 +24,7 @@ namespace WebApi.Test.Controllers
                 .ReturnsAsync(permissionTypes);
 
             //ACT
-            var actual = await sut.GetAsync();
+            var actual = await sut.GetAsync(CancellationToken.None);
 
             //ASSERT
             actual.Result.Should().BeOfType<OkObjectResult>();
@@ -46,7 +46,7 @@ namespace WebApi.Test.Controllers
                 .ReturnsAsync(permissionType);
 
             //ACT
-            var actual = await sut.GetPermissionTypeByIdAsync(permissionType.Id);
+            var actual = await sut.GetPermissionTypeByIdAsync(permissionType.Id, CancellationToken.None);
 
             //ASSERT
             actual.Result.Should().BeOfType<OkObjectResult>();

@@ -1,9 +1,9 @@
 ﻿using Application.Commons.Exceptions;
 using Application.Features.PermissionTypes.Queries.GetPermissionTypeById;
-using Application.Interfaces.Common;
 using Application.Test.Configurations.AutoMoq;
 using AutoFixture.Xunit2;
 using Domain.Entities;
+using Domain.Repositories;
 using FluentAssertions;
 using Moq;
 using Xunit;
@@ -14,13 +14,14 @@ namespace Application.Test.Features.PermissionTypes.Queries.GetPermissionTypeByI
     {
         [Theory(DisplayName = "When permission type don't exist, it will return an error"), AutoMoq]
         public async Task Handle_NotFound(
-            [Frozen] Mock<IUnitOfWork> mockIUnitOfWork,
+            [Frozen] Mock<IPermissionTypeRepository> mockIPermissionTypeRepository,
             GetPermissionTypeByIdQuery request,
             GetPermissionTypeByIdQueryHandler sut)
         {
             //ARRANGE
-            mockIUnitOfWork.Setup(x => x.PermissionTypeRepository
-                .GetByIdAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            const string errorMessage = "Permission type wasn't found";
+            mockIPermissionTypeRepository.Setup(x => x.GetByIdAsync(
+                It.IsAny<int>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(null as PermissionType);
 
             //ACT
@@ -29,21 +30,21 @@ namespace Application.Test.Features.PermissionTypes.Queries.GetPermissionTypeByI
             //ASSERT
             await actual.Should()
                 .ThrowAsync<NotFoundException>()
-                .Where(m => m.Message.Contains(request.Id.ToString()));
-            mockIUnitOfWork.Verify(x => x.PermissionTypeRepository
-                .GetByIdAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
+                .Where(m => m.Message == errorMessage);
+            mockIPermissionTypeRepository.Verify(x => x.GetByIdAsync(It.IsAny<int>(),
+                It.IsAny<CancellationToken>()), Times.Once);
         }
 
         [Theory(DisplayName = "When permission type exist, it will return his information"), AutoMoq]
         public async Task Handle_Ok(
             PermissionType permissionType,
-            [Frozen] Mock<IUnitOfWork> mockIUnitOfWork,
+            [Frozen] Mock<IPermissionTypeRepository> mockIPermissionTypeRepository,
             GetPermissionTypeByIdQuery request,
             GetPermissionTypeByIdQueryHandler sut)
         {
             //ARRANGE
-            mockIUnitOfWork.Setup(x => x.PermissionTypeRepository
-                .GetByIdAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            mockIPermissionTypeRepository.Setup(x => x.GetByIdAsync(
+                It.IsAny<int>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(permissionType);
 
             //ACT
@@ -51,8 +52,8 @@ namespace Application.Test.Features.PermissionTypes.Queries.GetPermissionTypeByI
 
             //ASSERT
             actual.Should().NotBeNull();
-            mockIUnitOfWork.Verify(x => x.PermissionTypeRepository
-                .GetByIdAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
+            mockIPermissionTypeRepository.Verify(x => x.GetByIdAsync(It.IsAny<int>(),
+                It.IsAny<CancellationToken>()), Times.Once);
         }
     }
 }

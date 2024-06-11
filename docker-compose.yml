@@ -11,48 +11,11 @@ volumes:
     driver: local
     
 services:
-  InitDB:
-    container_name: InitDBContainer
-    image: mcr.microsoft.com/mssql-tools
-    volumes:
-      - ./InitDB:/init
-    networks:
-      - net-api-cqrs-ddd
-    depends_on:
-      - WebApi
-    command: /bin/bash -c "/opt/mssql-tools/bin/sqlcmd -S SqlServerContainer -U sa -P Qwerty123456@ -i /init/init-script.sql"
-    
-  WebApi:
-    container_name: WebApiContainer
-    image: api-cqrs-ddd
-    #image: breidyn/api-cqrs-ddd:v1.0
-    ports:
-      - 5000:80
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Docker
-    build:
-      context: .
-      dockerfile: WebApi/Dockerfile
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:80"]
-      interval: 10s
-      timeout: 15s
-      retries: 3
-    networks:
-      - net-api-cqrs-ddd
-    depends_on:
-      SqlServerDb:
-        condition: service_healthy
-      ElasticSearch:
-        condition: service_healthy
-      Kafka:
-        condition: service_healthy
-
-  SqlServerDb:
-    container_name: SqlServerContainer
+  sql-server:
+    container_name: sql-server-container
     image: mcr.microsoft.com/mssql/server:2017-latest
     ports:
-      - 1433:1433
+      - 1436:1433
     environment:
       - ACCEPT_EULA=Y
       - MSSQL_PID=Express
@@ -62,14 +25,51 @@ services:
     networks:
       - net-api-cqrs-ddd
     healthcheck:
-      test: /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "Qwerty123456@" -Q "USE ManageEmployees; SELECT GETDATE()" || exit 1
-      interval: 30s
+      test: /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "Qwerty123456@" -Q "USE master; SELECT GETDATE()" || exit 1
+      interval: 10s
+      timeout: 30s
+      retries: 2
+      
+  web-api:
+    container_name: web-api-container
+    image: api-cqrs-ddd
+    #image: breidyn/api-cqrs-ddd:v1.0
+    ports:
+      - 8081:8080
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Docker
+    build:
+      context: .
+      dockerfile: WebApi/Dockerfile
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      interval: 10s
       timeout: 30s
       retries: 3
-      
-  ElasticSearch:
+    networks:
+      - net-api-cqrs-ddd
+    depends_on:
+      sql-server:
+        condition: service_healthy
+      elastic-search:
+        condition: service_healthy
+      # kafka:
+      #   condition: service_healthy
+
+  init-db:
+    container_name: init-db-container
+    image: mcr.microsoft.com/mssql-tools
+    volumes:
+      - ./InitDB:/init
+    networks:
+      - net-api-cqrs-ddd
+    depends_on:
+      - web-api
+    command: /bin/bash -c "/opt/mssql-tools/bin/sqlcmd -S sql-server-container -U sa -P Qwerty123456@ -i /init/init-script.sql"
+    
+  elastic-search:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.17.15
-    container_name: ElasticSearchContainer
+    container_name: elastic-search-container
     environment:
       - discovery.type=single-node
     ports:
@@ -84,57 +84,69 @@ services:
       - es-data:/usr/share/elasticsearch/data
     networks:
       - net-api-cqrs-ddd
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.17.15
+    container_name: kibana-container
+    ports:
+      - 5601:5601
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elastic-search:9200
+    depends_on:
+      - elastic-search
+    networks:
+      - net-api-cqrs-ddd
       
-  Zookeeper:
-    image: confluentinc/cp-zookeeper:latest
-    container_name: ZookeeperContainer
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-    ports:
-      - 2181:2181
-    networks:
-      - net-api-cqrs-ddd
+  # zookeeper:
+  #   image: confluentinc/cp-zookeeper:latest
+  #   container_name: zookeeper-container
+  #   environment:
+  #     ZOOKEEPER_CLIENT_PORT: 2181
+  #     ZOOKEEPER_TICK_TIME: 2000
+  #   ports:
+  #     - 2181:2181
+  #   networks:
+  #     - net-api-cqrs-ddd
 
-  Kafka:
-    image: confluentinc/cp-kafka:latest
-    container_name: KafkaContainer
-    depends_on:
-      - Zookeeper
-    ports:
-      - 9092:9092
-    expose:
-      - 29092
-    environment:
-      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: '1'
-      KAFKA_MIN_INSYNC_REPLICAS: '1'
-    healthcheck:
-      test: nc -z localhost 9092 || exit -1
-      start_period: 15s
-      interval: 5s
-      timeout: 10s
-      retries: 3
-    networks:
-      - net-api-cqrs-ddd
+  # kafka:
+  #   image: confluentinc/cp-kafka:latest
+  #   container_name: kafka-container
+  #   depends_on:
+  #     - zookeeper
+  #   ports:
+  #     - 9092:9092
+  #   expose:
+  #     - 29092
+  #   environment:
+  #     KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+  #     KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+  #     KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+  #     KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+  #     KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: '1'
+  #     KAFKA_MIN_INSYNC_REPLICAS: '1'
+  #   healthcheck:
+  #     test: nc -z localhost 9092 || exit -1
+  #     start_period: 15s
+  #     interval: 5s
+  #     timeout: 10s
+  #     retries: 3
+  #   networks:
+  #     - net-api-cqrs-ddd
     
-  InitKafka:
-    image: confluentinc/cp-kafka:latest
-    container_name: InitKafkaContainer
-    depends_on:
-      Kafka:
-        condition: service_healthy
-    entrypoint: [ '/bin/sh', '-c' ]
-    command: |
-      "
-      echo -e 'Creating kafka topics'
-      kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic permission-topic --replication-factor 1 --partitions 1
+  # init-kafka:
+  #   image: confluentinc/cp-kafka:latest
+  #   container_name: init-kafka-container
+  #   depends_on:
+  #     kafka:
+  #       condition: service_healthy
+  #   entrypoint: [ '/bin/sh', '-c' ]
+  #   command: |
+  #     "
+  #     echo -e 'Creating kafka topics'
+  #     kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic permission-topic --replication-factor 1 --partitions 1
 
-      echo -e 'Successfully created the following topic:'
-      kafka-topics --bootstrap-server kafka:29092 --list
-      "
-    networks:
-      - net-api-cqrs-ddd
+  #     echo -e 'Successfully created the following topic:'
+  #     kafka-topics --bootstrap-server kafka:29092 --list
+  #     "
+  #   networks:
+  #     - net-api-cqrs-ddd

@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Elastic.Serilog.Sinks;
+using Microsoft.EntityFrameworkCore;
 using Serilog;
 using WebApi.Middlewares;
 
@@ -16,6 +17,7 @@ namespace WebApi.Extensions
         public static void AddLoggerSeriLog(this IServiceCollection services, IConfiguration configuration)
         {
             var logger = new LoggerConfiguration()
+                .WriteTo.Elasticsearch([new Uri(configuration["ServicesClients:ElasticSearchServices:Host"]!)])
                 .ReadFrom.Configuration(configuration)
                 .CreateLogger();
 

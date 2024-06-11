@@ -24,7 +24,7 @@ namespace WebApi.Test.Controllers
                 .ReturnsAsync(employees);
 
             //ACT
-            var actual = await sut.GetAsync();
+            var actual = await sut.GetAsync(CancellationToken.None);
 
             //ASSERT
             actual.Result.Should().BeOfType<OkObjectResult>();
@@ -46,7 +46,7 @@ namespace WebApi.Test.Controllers
                 .ReturnsAsync(employee);
 
             //ACT
-            var actual = await sut.GetEmployeeByIdAsync(employee.Id);
+            var actual = await sut.GetEmployeeByIdAsync(employee.Id, CancellationToken.None);
 
             //ASSERT
             actual.Result.Should().BeOfType<OkObjectResult>();
