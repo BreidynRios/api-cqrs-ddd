@@ -1,6 +1,7 @@
 ﻿using Application.Commons.Behaviors;
 using FluentValidation;
 using MediatR;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 
@@ -8,7 +9,7 @@ namespace Application.Extensions
 {
     public static class ServiceCollectionExtensions
     {
-        public static void AddApplicationLayer(this IServiceCollection services)
+        public static void AddApplicationLayer(this IServiceCollection services, IConfiguration configuration)
         {
             services.AddAutoMapper();
             services.AddMediator();
@@ -30,6 +31,7 @@ namespace Application.Extensions
             services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
             services.AddScoped(typeof(IPipelineBehavior<,>), typeof(ValidationPipelineBehavior<,>));
             services.AddScoped(typeof(IPipelineBehavior<,>), typeof(RequestLoggingPipelineBehavior<,>));
+            services.AddScoped(typeof(IPipelineBehavior<,>), typeof(DataCachePipelineBehavior<,>));
         }
     }
 }

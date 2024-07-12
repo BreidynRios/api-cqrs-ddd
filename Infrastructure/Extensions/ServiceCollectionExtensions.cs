@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Nest;
+using StackExchange.Redis;
 
 namespace Infrastructure.Extensions
 {
@@ -19,6 +20,7 @@ namespace Infrastructure.Extensions
 
             services.AddElasticSearch();
             services.AddKafka();
+            services.AddRedis(configuration);
         }
 
         private static void AddElasticSearch(this IServiceCollection services)
@@ -46,6 +48,17 @@ namespace Infrastructure.Extensions
                     BootstrapServers = settings.KafkaProducerServices.BootstrapServers 
                 };
                 return new ProducerBuilder<string, string>(producerConfig).Build();
+            });
+        }
+
+        private static void AddRedis(this IServiceCollection services, IConfiguration configuration)
+        {
+            var redisConfig = ConfigurationOptions.Parse($"{configuration["Redis:Host"]}, " +
+                $"password={configuration["Redis:Password"]}, allowAdmin=true");
+
+            services.AddStackExchangeRedisCache(options =>
+            {
+                options.ConfigurationOptions = redisConfig;
             });
         }
     }

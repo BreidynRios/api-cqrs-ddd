@@ -33,17 +33,17 @@ namespace Infrastructure.ServicesClients
                 var response = await _elasticClient
                         .IndexDocumentAsync(parameter, cancellationToken);
                 if (response.IsValid)
-                    _logger.LogInformation("{message}", "ElasticSearch: The document was created. " +
+                    _logger.LogInformation("{Message}", "ElasticSearch: The document was created. " +
                         $"Parameter: {JsonSerializer.Serialize(parameter)}");
                 else
-                    _logger.LogError("{message}", "ElasticSearch: The document wasn't created. " +
+                    _logger.LogError("{Message}", "ElasticSearch: The document wasn't created. " +
                         $"Parameter: {JsonSerializer.Serialize(parameter)}");
             }
             catch (Exception ex)
             {
-                _logger.LogError("{message}", "ElasticSearch Exception: The document wasn't created. " +
-                        $"Parameter: {JsonSerializer.Serialize(parameter)} " +
-                        $"Error: {ex.Message}");
+                var errorMessage = "ElasticSearch Exception: The document wasn't created. " +
+                        $"Parameter: {JsonSerializer.Serialize(parameter)}";
+                _logger.LogError(ex, errorMessage);
             }
         }
     }

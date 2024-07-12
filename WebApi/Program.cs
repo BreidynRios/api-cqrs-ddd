@@ -8,7 +8,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddPresentationLayer(builder.Configuration);
-builder.Services.AddApplicationLayer();
+builder.Services.AddApplicationLayer(builder.Configuration);
 builder.Services.AddPersistenceLayer(builder.Configuration);
 builder.Services.AddInfrastructureLayer(builder.Configuration);
 
@@ -30,4 +30,4 @@ app.MapControllers();
 
 app.MigrateDatabase<ManageEmployeesContext>(builder.Configuration);
 
-app.Run();
+await app.RunAsync();

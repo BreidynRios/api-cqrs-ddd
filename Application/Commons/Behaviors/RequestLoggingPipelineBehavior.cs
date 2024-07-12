@@ -21,11 +21,13 @@ namespace Application.Commons.Behaviors
             RequestHandlerDelegate<TResponse> next,
             CancellationToken cancellationToken)
         {
-            _logger.LogInformation($"Method: {request}, Start Date: {DateTime.UtcNow}");
+            var messageStart = $"Method: {request}, Start Date: {DateTime.UtcNow}";
+            _logger.LogInformation("{Message}", messageStart);
             
             var response = await next();
-            
-            _logger.LogInformation($"Method: {request}, End Date: {DateTime.UtcNow}");
+
+            var messageEnd = $"Method: {request}, End Date: {DateTime.UtcNow}";
+            _logger.LogInformation("{Message}", messageEnd);
             
             return response;
         }

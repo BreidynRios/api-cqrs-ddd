@@ -38,15 +38,15 @@ namespace Infrastructure.ServicesClients
                 var result = await _producer.ProduceAsync(_kafkaProducer.Topic, topicMessage, cancellationToken);
 
                 if (result.Status is PersistenceStatus.Persisted)
-                    _logger.LogInformation("{message}", $"Kafka: Message persisted. Message: {topicMessage.Value}");
+                    _logger.LogInformation("{Message}", $"Kafka: Message persisted. Message: {topicMessage.Value}");
                 else
-                    _logger.LogError("{message}", $"Kafka: Message not persisted. Message: {topicMessage.Value}");
+                    _logger.LogError("{Message}", $"Kafka: Message not persisted. Message: {topicMessage.Value}");
             }
             catch (Exception ex)
             {
-                _logger.LogError("{message}", "Kafka Exception: Message not persisted. " +
-                       $"Message: {topicMessage.Value}. " +
-                       $"Error: {ex.Message}");
+                var errorMessage = "Kafka Exception: Message not persisted. " +
+                       $"Message: {topicMessage.Value}.";
+                _logger.LogError(ex, errorMessage);
             }
         }
     }

@@ -5,9 +5,13 @@ networks:
     driver: bridge
 
 volumes:
-  sqlserver-data:
+  sql-server-data:
     driver: local
-  es-data:
+  elastic-search-data:
+    driver: local
+  redis-data:
+    driver: local
+  redis-insight-data:
     driver: local
     
 services:
@@ -21,7 +25,7 @@ services:
       - MSSQL_PID=Express
       - MSSQL_SA_PASSWORD=Qwerty123456@
     volumes:
-      - sqlserver-data:/var/opt/mssql/data
+      - sql-server-data:/var/opt/mssql/data
     networks:
       - net-api-cqrs-ddd
     healthcheck:
@@ -81,7 +85,7 @@ services:
       retries: 3
       start_period: 10s
     volumes:
-      - es-data:/usr/share/elasticsearch/data
+      - elastic-search-data:/usr/share/elasticsearch/data
     networks:
       - net-api-cqrs-ddd
 
@@ -96,7 +100,30 @@ services:
       - elastic-search
     networks:
       - net-api-cqrs-ddd
-      
+
+  redis:
+    image: redis:latest
+    container_name: redis-container
+    command: bash -c "redis-server --requirepass R3d1SL0c@L"
+    ports:
+      - 6379:6379
+    volumes:
+      - redis-data:/data
+    networks:
+      - net-api-cqrs-ddd
+
+  redis-insight:
+    image: redis/redisinsight:latest
+    container_name: redis-insight-container
+    ports:
+      - 5540:5540
+    volumes:
+      - redis-insight-data:/db-data
+    depends_on:
+      - redis
+    networks:
+      - net-api-cqrs-ddd
+
   # zookeeper:
   #   image: confluentinc/cp-zookeeper:latest
   #   container_name: zookeeper-container

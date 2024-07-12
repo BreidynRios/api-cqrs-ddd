@@ -32,7 +32,7 @@ namespace Persistence.Repositories
         public virtual async Task<IEnumerable<T>> GetAllAsync(CancellationToken cancellationToken)
             => await _dbSet.AsNoTracking().ToListAsync(cancellationToken);
 
-        public virtual async Task<T> GetByIdAsync(int id, CancellationToken cancellationToken)
+        public virtual async Task<T?> GetByIdAsync(int id, CancellationToken cancellationToken)
             => await _dbSet.FindAsync(id, cancellationToken);
 
         public IQueryable<T> PagedQueryable(IQueryable<T> set, IPagination pagination)
