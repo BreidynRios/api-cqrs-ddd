@@ -13,6 +13,8 @@ volumes:
     driver: local
   redis-insight-data:
     driver: local
+  rabbit-data:
+    driver: local
     
 services:
   sql-server:
@@ -121,6 +123,20 @@ services:
       - redis-insight-data:/db-data
     depends_on:
       - redis
+    networks:
+      - net-api-cqrs-ddd
+
+  rabbit:
+    image: rabbitmq:3.13.4-management-alpine
+    container_name: rabbit-container    
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - 5672:5672
+      - 15672:15672
+    volumes:
+      - rabbit-data:/var/lib/rabbitmq
     networks:
       - net-api-cqrs-ddd
 

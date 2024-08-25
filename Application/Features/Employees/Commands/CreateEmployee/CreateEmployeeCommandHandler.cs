@@ -1,4 +1,6 @@
-﻿using Domain.Entities;
+﻿using Application.Events.Messages;
+using Application.Interfaces.ServicesClients;
+using Domain.Entities;
 using Domain.Repositories;
 using MediatR;
 
@@ -9,13 +11,16 @@ namespace Application.Features.Employees.Commands.CreateEmployee
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IEmployeeRepository _employeeRepository;
+        private readonly IBusClientService _busClientService;
 
         public CreateEmployeeCommandHandler(
             IUnitOfWork unitOfWork,
-            IEmployeeRepository employeeRepository)
+            IEmployeeRepository employeeRepository,
+            IBusClientService busClientService)
         {
             _unitOfWork = unitOfWork;
             _employeeRepository = employeeRepository;
+            _busClientService = busClientService;
         }
 
         public async Task<int> Handle(CreateEmployeeCommand request, CancellationToken cancellationToken)
@@ -23,6 +28,12 @@ namespace Application.Features.Employees.Commands.CreateEmployee
             var employee = AssignEmployee(request);
             await _employeeRepository.AddAsync(employee, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            await _busClientService.PublishMessageQueue(new EmployeeCreated
+            {
+                Id = employee.Id,
+                Name = employee.Name
+            }, cancellationToken);
             return employee.Id;
         }
 

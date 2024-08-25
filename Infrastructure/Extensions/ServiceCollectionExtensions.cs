@@ -1,9 +1,11 @@
-﻿using Application.Interfaces.ServicesClients;
+﻿using Application.Events.Subscriptions;
+using Application.Interfaces.ServicesClients;
 using Confluent.Kafka;
 using Infrastructure.Commons.Settings;
 using Infrastructure.ServicesClients;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Nest;
 using StackExchange.Redis;
@@ -21,6 +23,7 @@ namespace Infrastructure.Extensions
             services.AddElasticSearch();
             services.AddKafka();
             services.AddRedis(configuration);
+            services.AddRabbitMq(configuration);
         }
 
         private static void AddElasticSearch(this IServiceCollection services)
@@ -60,6 +63,25 @@ namespace Infrastructure.Extensions
             {
                 options.ConfigurationOptions = redisConfig;
             });
+        }
+
+        private static void AddRabbitMq(this IServiceCollection services, IConfiguration configuration)
+        {
+            services.Configure<RabbitMqSettings>(configuration.GetSection("MessageBroker"));
+            services.AddSingleton<IBusClientService, RabbitMqClientService>();
+
+            var subscriptors = new Type[] { 
+                typeof(EmployeeCreatedSubscriptor),
+                typeof(PermissionDeletedSubscriptor)
+            };
+
+            services.AddSingleton<IHostedService, RabbitMqBusListener>((IServiceProvider provider) =>
+                ActivatorUtilities.CreateInstance<RabbitMqBusListener>(provider, [subscriptors.Cast<object>()]));
+
+            foreach (var subscriptor in subscriptors)
+            {
+                services.AddTransient(subscriptor);
+            }
         }
     }
 }

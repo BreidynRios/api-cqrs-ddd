@@ -1,6 +1,7 @@
 ﻿using Application.Commons.Utils;
 using Application.DTOs.ServicesClients.Kafka;
 using Application.Features.Permissions.Commands.CreatePermission;
+using Application.Features.Permissions.Commands.DeletePermission;
 using Application.Features.Permissions.Commands.UpdatePermission;
 using Application.Features.Permissions.Queries.GetPermissionById;
 using Application.Interfaces.ServicesClients;
@@ -45,13 +46,21 @@ namespace WebApi.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task UpdateAsync(int id, UpdatePermissionCommand command,
+        public async Task<IActionResult> UpdateAsync(int id, UpdatePermissionCommand command,
             CancellationToken cancellationToken)
         {
             command.Id = id;
             await _kafkaServiceClient.ProduceAsync(new PermissionTopicParameter<UpdatePermissionCommand>
                 (Constants.Modify, command), cancellationToken);
             await _mediator.Send(command, cancellationToken);
+            return Ok();
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteAsync(int id, CancellationToken cancellationToken)
+        {
+            await _mediator.Send(new DeletePermissionCommand(id), cancellationToken);
+            return Ok();
         }
     }
 }
