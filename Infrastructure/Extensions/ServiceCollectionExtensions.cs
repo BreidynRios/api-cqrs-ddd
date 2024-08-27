@@ -3,6 +3,7 @@ using Application.Interfaces.ServicesClients;
 using Confluent.Kafka;
 using Infrastructure.Commons.Settings;
 using Infrastructure.ServicesClients;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -14,16 +15,23 @@ namespace Infrastructure.Extensions
 {
     public static class ServiceCollectionExtensions
     {
-        public static void AddInfrastructureLayer(this IServiceCollection services, IConfiguration configuration)
+        public static void AddInfrastructureLayer(this IServiceCollection services,
+            IConfiguration configuration, IWebHostEnvironment environment)
+        {
+            services.AddExternalServicesClients(configuration);
+            services.AddElasticSearch();
+            services.AddKafka();
+            services.AddRedis(configuration);
+            services.AddRabbitMq(configuration, environment);
+            services.AddBackgroundJob();
+        }
+
+        private static void AddExternalServicesClients(this IServiceCollection services,
+            IConfiguration configuration)
         {
             services.Configure<ServicesClientsSettings>(configuration.GetSection("ServicesClients"));
             var settings = new ServicesClientsSettings();
             configuration.GetSection("ServicesClients").Bind(settings);
-
-            services.AddElasticSearch();
-            services.AddKafka();
-            services.AddRedis(configuration);
-            services.AddRabbitMq(configuration);
         }
 
         private static void AddElasticSearch(this IServiceCollection services)
@@ -65,10 +73,13 @@ namespace Infrastructure.Extensions
             });
         }
 
-        private static void AddRabbitMq(this IServiceCollection services, IConfiguration configuration)
+        private static void AddRabbitMq(this IServiceCollection services,
+            IConfiguration configuration, IWebHostEnvironment environment)
         {
             services.Configure<RabbitMqSettings>(configuration.GetSection("MessageBroker"));
-            services.AddSingleton<IBusClientService, RabbitMqClientService>();
+            services.AddSingleton<IBusServiceClient, RabbitMqServiceClient>();
+
+            if (environment.IsDevelopment()) return;
 
             var subscriptors = new Type[] { 
                 typeof(EmployeeCreatedSubscriptor),
@@ -82,6 +93,11 @@ namespace Infrastructure.Extensions
             {
                 services.AddTransient(subscriptor);
             }
+        }
+
+        private static void AddBackgroundJob(this IServiceCollection services)
+        {
+            services.AddSingleton<IBackgroundJobServiceClient, BackgroundJobServiceClient>();
         }
     }
 }

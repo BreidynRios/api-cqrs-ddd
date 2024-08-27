@@ -1,4 +1,5 @@
 ﻿using Application.Features.Employees.Commands.CreateEmployee;
+using Application.Features.Employees.Queries.ExportEmployeesBackgroundJob;
 using Application.Features.Employees.Queries.GetAllEmployees;
 using Application.Features.Employees.Queries.GetEmployeeById;
 using MediatR;
@@ -37,6 +38,14 @@ namespace WebApi.Controllers
             [FromBody] CreateEmployeeCommand command, CancellationToken cancellationToken)
         {
             return Ok(await _mediator.Send(command, cancellationToken));
+        }
+
+        [HttpPost]
+        [Route("export-file")]
+        public async Task<IActionResult> ExportFileAsync(
+            [FromBody] ExportEmployeesBackgroundJobQuery query, CancellationToken cancellationToken)
+        {
+            return Ok(await _mediator.Send(query, cancellationToken));
         }
     }
 }

@@ -10,12 +10,12 @@ namespace Application.Features.Permissions.Commands.DeletePermission
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IPermissionRepository _permissionRepository;
-        private readonly IBusClientService _busClientService;
+        private readonly IBusServiceClient _busClientService;
 
         public DeletePermissionCommandHandler(
             IUnitOfWork unitOfWork,
             IPermissionRepository permissionRepository,
-            IBusClientService busClientService)
+            IBusServiceClient busClientService)
         {
             _unitOfWork = unitOfWork;
             _permissionRepository = permissionRepository;

@@ -7,14 +7,16 @@ namespace WebApi.Extensions
 {
     public static class ServiceCollectionExtensions
     {
-        public static void AddPresentationLayer(this IServiceCollection services, IConfiguration configuration)
+        public static void AddPresentationLayer(this IServiceCollection services,
+            IConfiguration configuration, string policyName)
         {
             services.AddLoggerSeriLog(configuration);
             services.AddExceptionHandler<GlobalExceptionHandler>();
             services.AddProblemDetails();
+            services.AddCors(configuration, policyName);
         }
 
-        public static void AddLoggerSeriLog(this IServiceCollection services, IConfiguration configuration)
+        private static void AddLoggerSeriLog(this IServiceCollection services, IConfiguration configuration)
         {
             var logger = new LoggerConfiguration()
                 .WriteTo.Elasticsearch([new Uri(configuration["ServicesClients:ElasticSearchServices:Host"]!)])
@@ -49,6 +51,25 @@ namespace WebApi.Extensions
                 }
             }
             return host;
+        }
+
+        private static void AddCors(this IServiceCollection services,
+            IConfiguration configuration, string policyName)
+        {
+            var authorizedCorsOrigins = configuration.GetSection("Cors:AuthorizedOrigins")
+                .Get<List<string>>();
+
+            services.AddCors(options =>
+            {
+                options.AddPolicy(policyName,
+                    policy =>
+                    {
+                        policy.WithOrigins([.. authorizedCorsOrigins])
+                              .AllowAnyHeader()
+                              .AllowAnyMethod()
+                              .AllowCredentials();
+                    });
+            });
         }
     }
 }

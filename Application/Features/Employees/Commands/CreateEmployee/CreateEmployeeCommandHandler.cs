@@ -11,12 +11,12 @@ namespace Application.Features.Employees.Commands.CreateEmployee
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IEmployeeRepository _employeeRepository;
-        private readonly IBusClientService _busClientService;
+        private readonly IBusServiceClient _busClientService;
 
         public CreateEmployeeCommandHandler(
             IUnitOfWork unitOfWork,
             IEmployeeRepository employeeRepository,
-            IBusClientService busClientService)
+            IBusServiceClient busClientService)
         {
             _unitOfWork = unitOfWork;
             _employeeRepository = employeeRepository;

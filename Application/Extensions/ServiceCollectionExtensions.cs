@@ -1,7 +1,6 @@
 ﻿using Application.Commons.Behaviors;
 using FluentValidation;
 using MediatR;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 
@@ -9,11 +8,12 @@ namespace Application.Extensions
 {
     public static class ServiceCollectionExtensions
     {
-        public static void AddApplicationLayer(this IServiceCollection services, IConfiguration configuration)
+        public static void AddApplicationLayer(this IServiceCollection services)
         {
             services.AddAutoMapper();
             services.AddMediator();
             services.AddPipelineBehavior();
+            services.AddSignalR();
         }
 
         private static void AddAutoMapper(this IServiceCollection services)

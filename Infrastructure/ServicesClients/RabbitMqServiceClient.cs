@@ -9,15 +9,15 @@ using System.Text.Json;
 
 namespace Infrastructure.ServicesClients
 {
-    public class RabbitMqClientService : IBusClientService
+    public class RabbitMqServiceClient : IBusServiceClient
     {
-        private readonly ILogger<RabbitMqClientService> _logger;
+        private readonly ILogger<RabbitMqServiceClient> _logger;
         private readonly RabbitMqSettings _configuration;
         private readonly ConnectionFactory _connectionFactory;
 
-        public RabbitMqClientService(
+        public RabbitMqServiceClient(
             IOptions<RabbitMqSettings> options,
-            ILogger<RabbitMqClientService> logger)
+            ILogger<RabbitMqServiceClient> logger)
         {
             _configuration = options.Value;
             _connectionFactory = new ConnectionFactory

@@ -127,7 +127,7 @@ namespace Infrastructure.ServicesClients
             var handlerInstance = _serviceProvider.GetService(subscriptorType);
             if (handlerInstance is null)
             {
-                _logger.LogError("No se recuperó el subscriptor {TYPE}: ", subscriptorType);
+                _logger.LogError("No se recuperó el subscriptor {TYPE}", subscriptorType);
                 return;
             }
 
