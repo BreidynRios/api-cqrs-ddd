@@ -1,14 +1,19 @@
-﻿using Application.Features.Employees.Commands.CreateEmployee;
+﻿using Application.Commons.Utils;
+using Application.Features.Employees.Commands.CreateEmployee;
 using Application.Features.Employees.Queries.ExportEmployeesBackgroundJob;
 using Application.Features.Employees.Queries.GetAllEmployees;
 using Application.Features.Employees.Queries.GetEmployeeById;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace WebApi.Controllers
 {
     [Route("api/v1/employees")]
     [ApiController]
+    [Authorize(AuthenticationSchemes = 
+        $"{GeneralConstants.DEFAULT_SCHEME_BEARER_TOKEN},{GeneralConstants.DEFAULT_SCHEME_API_KEY}")]
+
     public class EmployeesController : ControllerBase
     {
         private readonly IMediator _mediator;

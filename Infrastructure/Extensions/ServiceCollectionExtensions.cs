@@ -24,6 +24,8 @@ namespace Infrastructure.Extensions
             services.AddRedis(configuration);
             services.AddRabbitMq(configuration, environment);
             services.AddBackgroundJob();
+            services.AddHttpContextAccessor();
+            services.AddTransient<IUserServiceClient, UserServiceClient>();
         }
 
         private static void AddExternalServicesClients(this IServiceCollection services,

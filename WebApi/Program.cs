@@ -6,6 +6,7 @@ using Persistence.Extensions;
 using WebApi.Extensions;
 
 const string CORS_POLICY = "CorsPolicy";
+const string DOCKER_ENVIRONMENT = "Docker";
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,21 +20,24 @@ builder.Services.AddInfrastructureLayer(builder.Configuration, environment);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-app.UseSwagger();
+if (app.Environment.IsDevelopment() 
+    || app.Environment.IsEnvironment(DOCKER_ENVIRONMENT))
+{
+    app.UseSwagger()
+        .UseSwaggerUI()
+        .UseExceptionHandler();
+}
+else
+{
+    app.UseExceptionHandler("/Error");
+}
 
-app.UseSwaggerUI();
-
-app.UseRouting();
-
-app.UseCors(CORS_POLICY);
-
-app.UseExceptionHandler();
-
-app.UseAuthorization();
+app.UseCors(CORS_POLICY)
+    .UseAuthentication()
+    .UseAuthorization();
 
 app.MapHub<ApplicationHub>("/hub");
 

@@ -1,12 +1,16 @@
-﻿using Application.Features.PermissionTypes.Queries.GetAllPermissionTypes;
+﻿using Application.Commons.Utils;
+using Application.Features.PermissionTypes.Queries.GetAllPermissionTypes;
 using Application.Features.PermissionTypes.Queries.GetPermissionTypeById;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace WebApi.Controllers
 {
     [Route("api/v1/permission-types")]
     [ApiController]
+    [Authorize(AuthenticationSchemes =
+        $"{GeneralConstants.DEFAULT_SCHEME_BEARER_TOKEN},{GeneralConstants.DEFAULT_SCHEME_API_KEY}")]
     public class PermissionTypesController : ControllerBase
     {
         private readonly IMediator _mediator;

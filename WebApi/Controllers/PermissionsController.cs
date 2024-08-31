@@ -6,12 +6,15 @@ using Application.Features.Permissions.Commands.UpdatePermission;
 using Application.Features.Permissions.Queries.GetPermissionById;
 using Application.Interfaces.ServicesClients;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace WebApi.Controllers
 {
     [Route("api/v1/permissions")]
     [ApiController]
+    [Authorize(AuthenticationSchemes =
+        $"{GeneralConstants.DEFAULT_SCHEME_BEARER_TOKEN},{GeneralConstants.DEFAULT_SCHEME_API_KEY}")]
     public class PermissionsController : ControllerBase
     {
         private readonly IMediator _mediator;
@@ -30,7 +33,7 @@ namespace WebApi.Controllers
             int id, CancellationToken cancellationToken)
         {
             await _kafkaServiceClient.ProduceAsync(
-                new PermissionTopicParameter<int>(Constants.Get, id), cancellationToken);
+                new PermissionTopicParameter<int>(GeneralConstants.GET, id), cancellationToken);
 
             return Ok(await _mediator.Send(new GetPermissionByIdQuery(id), cancellationToken));
         }
@@ -40,7 +43,7 @@ namespace WebApi.Controllers
             CreatePermissionCommand command, CancellationToken cancellationToken)
         {
             await _kafkaServiceClient.ProduceAsync(new PermissionTopicParameter<CreatePermissionCommand>
-                (Constants.Request, command), cancellationToken);
+                (GeneralConstants.REQUEST, command), cancellationToken);
 
             return Ok(await _mediator.Send(command, cancellationToken));
         }
@@ -51,7 +54,7 @@ namespace WebApi.Controllers
         {
             command.Id = id;
             await _kafkaServiceClient.ProduceAsync(new PermissionTopicParameter<UpdatePermissionCommand>
-                (Constants.Modify, command), cancellationToken);
+                (GeneralConstants.MODIFY, command), cancellationToken);
             await _mediator.Send(command, cancellationToken);
             return Ok();
         }

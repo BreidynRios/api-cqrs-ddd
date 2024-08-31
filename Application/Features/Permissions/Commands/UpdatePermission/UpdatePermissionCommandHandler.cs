@@ -71,7 +71,7 @@ namespace Application.Features.Permissions.Commands.UpdatePermission
         {
             await _elasticSearchServiceClient.CreateDocumentAsync(new PermissionParameter
             {
-                OperationName = Constants.Modify,
+                OperationName = GeneralConstants.MODIFY,
                 PermissionId = permission.Id,
                 EmployeeId = permission.EmployeeId,
                 PermissionTypeId = permission.PermissionTypeId,

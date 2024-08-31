@@ -43,7 +43,7 @@ namespace Application.Features.Permissions.Queries.GetPermissionById
         {
             await _elasticSearchServiceClient.CreateDocumentAsync(new PermissionParameter
             {
-                OperationName = Constants.Get,
+                OperationName = GeneralConstants.GET,
                 PermissionId = permission.Id,
                 EmployeeId = permission.EmployeeId,
                 PermissionTypeId = permission.PermissionTypeId,

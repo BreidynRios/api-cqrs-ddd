@@ -34,29 +34,40 @@ namespace Infrastructure.ServicesClients
             _logger = logger;
         }
 
-        public async Task<string> PublishMessageQueue<TMessage>(TMessage message,
+        public async Task<string?> PublishMessageQueue<TMessage>(TMessage message,
             CancellationToken cancellationToken) where TMessage : IMessage
         {
-            using var connection = _connectionFactory.CreateConnection();
-            using var channel = connection.CreateModel();
-            var basicProperties = channel.CreateBasicProperties();
-
             var messageKey = Guid.NewGuid().ToString();
-            basicProperties.Headers = new Dictionary<string, object>
-            {
-                { "key", messageKey },
-                { "application", _configuration.ApplicationKey }
-            };
-
             var exchangeName = message.GetType().Name;
             var messageContent = JsonSerializer.Serialize(message);
-            var body = Encoding.UTF8.GetBytes(messageContent);
-            channel.BasicPublish(exchangeName, exchangeName, basicProperties, body);
 
-            _logger.LogInformation("Ha sido publicado un Mensaje con Key: '{KEY}', Nombre: '{NAME}' " +
-                "y Contenido: '{MESSAGE}'.", messageKey, exchangeName, messageContent);
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+                using var channel = connection.CreateModel();
+                var basicProperties = channel.CreateBasicProperties();
 
-            return await Task.FromResult(messageKey);
+                basicProperties.Headers = new Dictionary<string, object>
+                {
+                    { "key", messageKey },
+                    { "application", _configuration.ApplicationKey }
+                };
+                
+                var body = Encoding.UTF8.GetBytes(messageContent);
+                channel.BasicPublish(exchangeName, exchangeName, basicProperties, body);
+
+                _logger.LogInformation("Ha sido publicado un Mensaje con Key: '{KEY}', Nombre: '{NAME}' " +
+                    "y Contenido: '{CONTENT}'.", messageKey, exchangeName, messageContent);
+
+                return await Task.FromResult(messageKey);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ocurrió un error al publicar el Mensaje con Key: '{KEY}', " +
+                    "Nombre: '{NAME}' y Contenido: '{CONTENT}'. Error: {ERROR}", 
+                    messageKey, exchangeName, messageContent, ex.Message);
+                return null;
+            }
         }
     }
 }

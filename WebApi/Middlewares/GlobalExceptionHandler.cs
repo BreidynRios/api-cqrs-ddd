@@ -36,7 +36,7 @@ namespace WebApi.Middlewares
             {
                 Status = baseException?.StatusCode ?? StatusCodes.Status500InternalServerError,
                 Title = baseException?.Title ?? InternalError,
-                Detail = baseException?.Message ?? InternalErrorMessage
+                Detail = baseException?.Message ?? $"{InternalErrorMessage}. Internal Code: {DateTime.UtcNow.Ticks}"
             };
         }
     }

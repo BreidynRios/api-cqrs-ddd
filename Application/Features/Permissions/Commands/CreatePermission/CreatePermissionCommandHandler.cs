@@ -71,7 +71,7 @@ namespace Application.Features.Permissions.Commands.CreatePermission
         {
             await _elasticSearchServiceClient.CreateDocumentAsync(new PermissionParameter
             {
-                OperationName = Constants.Request,
+                OperationName = GeneralConstants.REQUEST,
                 PermissionId = permission.Id,
                 EmployeeId = permission.EmployeeId,
                 PermissionTypeId = permission.PermissionTypeId,

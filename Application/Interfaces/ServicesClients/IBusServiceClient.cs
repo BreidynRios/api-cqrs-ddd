@@ -4,7 +4,7 @@ namespace Application.Interfaces.ServicesClients
 {
     public interface IBusServiceClient
     {
-        Task<string> PublishMessageQueue<TMessage>(TMessage message, CancellationToken cancellationToken)
+        Task<string?> PublishMessageQueue<TMessage>(TMessage message, CancellationToken cancellationToken)
             where TMessage : IMessage;
     }
 }
