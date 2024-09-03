@@ -1,11 +1,13 @@
-﻿using Application.Commons.Exceptions;
+﻿using Application.Commons.Behaviors.Interfaces;
+using Application.Commons.Exceptions;
 using FluentValidation;
 using MediatR;
 
 namespace Application.Commons.Behaviors
 {
-    public class ValidationPipelineBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
-        where TRequest : IRequest<TResponse>
+    public class ValidationPipelineBehavior<TRequest, TResponse> 
+        : IPipelineBehavior<TRequest, TResponse>
+        where TRequest : IRequestValidation
     {
         private readonly IValidator<TRequest>? _validator;
 

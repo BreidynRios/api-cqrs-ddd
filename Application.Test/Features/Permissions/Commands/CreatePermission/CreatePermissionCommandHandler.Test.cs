@@ -1,5 +1,4 @@
-﻿using Application.Commons.Exceptions;
-using Application.DTOs.ServicesClients.ElasticSearch;
+﻿using Application.DTOs.ServicesClients.ElasticSearch;
 using Application.Features.Permissions.Commands.CreatePermission;
 using Application.Interfaces.ServicesClients;
 using Application.Test.Configurations.AutoMoq;
@@ -9,13 +8,31 @@ using Domain.Repositories;
 using FluentAssertions;
 using Moq;
 using Xunit;
-using Xunit.Sdk;
 
 namespace Application.Test.Features.Permissions.Commands.CreatePermission
 {
     public class CreatePermissionCommandHandlerTest
     {
         #region Handle
+
+        [Theory(DisplayName = "When there is validation error, it will return error"), AutoMoq]
+        public async Task Handle_Error(
+            string error,
+            CreatePermissionCommand request,
+            [Frozen] Mock<CreatePermissionCommandHandler> sutMock)
+        {
+            //ARRANGE
+            sutMock.Setup(x => x.Validate(It.IsAny<CreatePermissionCommand>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(error);
+
+            //ACT
+            var actual = await sutMock.Object.Handle(request, CancellationToken.None);
+
+            //ASSERT
+            actual.ErrorMessage.Should().Be(error);
+            sutMock.Verify(x => x.Validate(It.IsAny<CreatePermissionCommand>(),
+                It.IsAny<CancellationToken>()), Times.Once);
+        }
 
         [Theory(DisplayName = "When the process is successful, it will return the id"), AutoMoq]
         public async Task Handle_Ok(
@@ -26,7 +43,7 @@ namespace Application.Test.Features.Permissions.Commands.CreatePermission
         {
             //ARRANGE
             sutMock.Setup(x => x.Validate(It.IsAny<CreatePermissionCommand>(), It.IsAny<CancellationToken>()))
-                .Returns(Task.CompletedTask);
+                .ReturnsAsync(string.Empty);
 
             sutMock.Setup(x => x.AssignPermission(It.IsAny<CreatePermissionCommand>()))
                 .Returns(permission);
@@ -41,7 +58,7 @@ namespace Application.Test.Features.Permissions.Commands.CreatePermission
             var actual = await sutMock.Object.Handle(request, CancellationToken.None);
 
             //ASSERT
-            actual.Should().BePositive();
+            actual.Data.Should().BePositive();
             sutMock.Verify(x => x.Validate(It.IsAny<CreatePermissionCommand>(), It.IsAny<CancellationToken>()), Times.Once);
             sutMock.Verify(x => x.AssignPermission(It.IsAny<CreatePermissionCommand>()), Times.Once);
             IPermissionRepository.Verify(x => x.AddAsync(It.IsAny<Permission>(),
@@ -66,12 +83,10 @@ namespace Application.Test.Features.Permissions.Commands.CreatePermission
                 .ReturnsAsync(null as Employee);
 
             //ACT
-            var actual = async () => await sut.Validate(request, CancellationToken.None);
+            var actual = await sut.Validate(request, CancellationToken.None);
 
             //ASSERT
-            await actual.Should()
-                .ThrowAsync<NotFoundException>()
-                .Where(m => m.Message == errorMessage);
+            actual.Should().Be(errorMessage);
             mockIEmployeeRepository.Verify(x => x.GetByIdAsync(It.IsAny<int>(),
                 It.IsAny<CancellationToken>()), Times.Once);
         }
@@ -93,12 +108,10 @@ namespace Application.Test.Features.Permissions.Commands.CreatePermission
                 .ReturnsAsync(null as PermissionType);
 
             //ACT
-            var actual = async () => await sut.Validate(request, CancellationToken.None);
+            var actual = await sut.Validate(request, CancellationToken.None);
 
             //ASSERT
-            await actual.Should()
-                .ThrowAsync<NotFoundException>()
-                .Where(m => m.Message == errorMessage);
+            actual.Should().Be(errorMessage);
             mockIEmployeeRepository.Verify(x => x.GetByIdAsync(
                 It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
             mockIPermissionTypeRepository.Verify(x => x.GetByIdAsync(
@@ -147,7 +160,6 @@ namespace Application.Test.Features.Permissions.Commands.CreatePermission
             actual.Should().NotBeNull();
             actual.EmployeeId.Should().Be(request.EmployeeId);
             actual.PermissionTypeId.Should().Be(request.PermissionTypeId);
-            actual.CreatedBy.Should().BePositive();
             actual.CreatedDateOnUtc.Should().BeMoreThan(default);
             actual.UpdatedBy.Should().Be(null);
             actual.UpdatedDateOnUtc.Should().Be(null);

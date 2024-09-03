@@ -1,5 +1,5 @@
-﻿using Application.Commons.Exceptions;
-using Application.Commons.Utils;
+﻿using Application.Commons.Utils;
+using Application.DTOs.Response;
 using Application.DTOs.ServicesClients.ElasticSearch;
 using Application.Interfaces.ServicesClients;
 using Domain.Entities;
@@ -9,7 +9,7 @@ using MediatR;
 namespace Application.Features.Permissions.Commands.UpdatePermission
 {
     public class UpdatePermissionCommandHandler
-       : IRequestHandler<UpdatePermissionCommand>
+       : IRequestHandler<UpdatePermissionCommand, Result>
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IElasticSearchServiceClient _elasticSearchServiceClient;
@@ -31,31 +31,41 @@ namespace Application.Features.Permissions.Commands.UpdatePermission
             _permissionTypeRepository = permissionTypeRepository;
         }
 
-        public async Task Handle(UpdatePermissionCommand request,
+        public async Task<Result> Handle(UpdatePermissionCommand request,
             CancellationToken cancellationToken)
         {
-            await Validate(request, cancellationToken);
-            var permission = await _permissionRepository
-                .GetByIdAsync(request.Id, cancellationToken);
+            var (error, currentPermission) = await Validate(request, cancellationToken);
+            if (!string.IsNullOrEmpty(error))
+                return Result.Failure(error);
 
+            var permission = currentPermission!;
             AssignPermission(permission, request);
             _permissionRepository.Update(permission);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             await ElasticSearchCreateDocument(permission, cancellationToken);
+
+            return Result.Success();
         }
 
-        protected internal virtual async Task Validate(UpdatePermissionCommand request,
-            CancellationToken cancellationToken)
+        protected internal virtual async Task<(string, Permission?)> Validate(
+            UpdatePermissionCommand request, CancellationToken cancellationToken)
         {
             var employee = await _employeeRepository
                 .GetByIdAsync(request.EmployeeId, cancellationToken);
             if (employee is null)
-                throw new NotFoundException("Employee wasn't found");
+                return ("Employee wasn't found", null);
 
             var permissionType = await _permissionTypeRepository
                 .GetByIdAsync(request.PermissionTypeId, cancellationToken);
             if (permissionType is null)
-                throw new NotFoundException("Permission type wasn't found");
+                return ("Permission type wasn't found", null);
+
+            var permission = await _permissionRepository
+                .GetByIdAsync(request.Id, cancellationToken);
+            if (permission is null)
+                return ("Permission wasn't found", null);
+
+            return (string.Empty, permission);
         }
 
         protected internal virtual void AssignPermission(
@@ -63,7 +73,6 @@ namespace Application.Features.Permissions.Commands.UpdatePermission
         {
             permission.EmployeeId = request.EmployeeId;
             permission.PermissionTypeId = request.PermissionTypeId;
-            permission.UpdatedBy = 1;
         }
 
         protected internal virtual async Task ElasticSearchCreateDocument(

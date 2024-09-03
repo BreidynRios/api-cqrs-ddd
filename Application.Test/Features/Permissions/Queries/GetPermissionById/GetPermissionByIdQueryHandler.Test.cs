@@ -1,5 +1,4 @@
-﻿using Application.Commons.Exceptions;
-using Application.DTOs.ServicesClients.ElasticSearch;
+﻿using Application.DTOs.ServicesClients.ElasticSearch;
 using Application.Features.Permissions.Queries.GetPermissionById;
 using Application.Interfaces.ServicesClients;
 using Application.Test.Configurations.AutoMoq;
@@ -29,12 +28,10 @@ namespace Application.Test.Features.Permissions.Queries.GetPermissionById
                 .ReturnsAsync(null as Permission);
 
             //ACT
-            var actual = async () => await sut.Handle(request, CancellationToken.None);
+            var actual = await sut.Handle(request, CancellationToken.None);
 
             //ASSERT
-            await actual.Should()
-                .ThrowAsync<NotFoundException>()
-                .Where(m => m.Message == errorMessage);
+            actual.ErrorMessage.Should().Be(errorMessage);
             mockIPermissionRepository.Verify(x => x.GetPermissionWithEmployeeTypeAsync(
                 It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
         }

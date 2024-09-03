@@ -12,7 +12,6 @@ using Microsoft.AspNetCore.Mvc;
 namespace WebApi.Controllers
 {
     [Route("api/v1/permissions")]
-    [ApiController]
     [Authorize(AuthenticationSchemes =
         $"{GeneralConstants.DEFAULT_SCHEME_BEARER_TOKEN},{GeneralConstants.DEFAULT_SCHEME_API_KEY}")]
     public class PermissionsController : ControllerBase
@@ -35,7 +34,8 @@ namespace WebApi.Controllers
             await _kafkaServiceClient.ProduceAsync(
                 new PermissionTopicParameter<int>(GeneralConstants.GET, id), cancellationToken);
 
-            return Ok(await _mediator.Send(new GetPermissionByIdQuery(id), cancellationToken));
+            var response = await _mediator.Send(new GetPermissionByIdQuery(id), cancellationToken);
+            return response.IsSuccess ? Ok(response.Data) : NotFound(response.ErrorMessage);
         }
 
         [HttpPost]
@@ -45,7 +45,8 @@ namespace WebApi.Controllers
             await _kafkaServiceClient.ProduceAsync(new PermissionTopicParameter<CreatePermissionCommand>
                 (GeneralConstants.REQUEST, command), cancellationToken);
 
-            return Ok(await _mediator.Send(command, cancellationToken));
+            var response = await _mediator.Send(command, cancellationToken);
+            return response.IsSuccess ? Ok(response.Data) : NotFound(response.ErrorMessage);
         }
 
         [HttpPut("{id}")]
@@ -55,15 +56,16 @@ namespace WebApi.Controllers
             command.Id = id;
             await _kafkaServiceClient.ProduceAsync(new PermissionTopicParameter<UpdatePermissionCommand>
                 (GeneralConstants.MODIFY, command), cancellationToken);
-            await _mediator.Send(command, cancellationToken);
-            return Ok();
+
+            var response = await _mediator.Send(command, cancellationToken);
+            return response.IsSuccess ? Ok() : NotFound(response.ErrorMessage);
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteAsync(int id, CancellationToken cancellationToken)
         {
-            await _mediator.Send(new DeletePermissionCommand(id), cancellationToken);
-            return Ok();
+            var response = await _mediator.Send(new DeletePermissionCommand(id), cancellationToken);
+            return response.IsSuccess ? Ok() : NotFound(response.ErrorMessage);
         }
     }
 }

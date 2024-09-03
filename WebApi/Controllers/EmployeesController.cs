@@ -10,10 +10,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace WebApi.Controllers
 {
     [Route("api/v1/employees")]
-    [ApiController]
     [Authorize(AuthenticationSchemes = 
         $"{GeneralConstants.DEFAULT_SCHEME_BEARER_TOKEN},{GeneralConstants.DEFAULT_SCHEME_API_KEY}")]
-
     public class EmployeesController : ControllerBase
     {
         private readonly IMediator _mediator;
@@ -35,14 +33,16 @@ namespace WebApi.Controllers
         public async Task<ActionResult<GetEmployeeByIdDto>> GetEmployeeByIdAsync(
             int id, CancellationToken cancellationToken)
         {
-            return Ok(await _mediator.Send(new GetEmployeeByIdQuery(id), cancellationToken));
+            var response = await _mediator.Send(new GetEmployeeByIdQuery(id), cancellationToken);
+            return response.IsSuccess ? Ok(response.Data) : NotFound(response.ErrorMessage);
         }
 
         [HttpPost]
         public async Task<ActionResult<int>> CreateAsync(
             [FromBody] CreateEmployeeCommand command, CancellationToken cancellationToken)
         {
-            return Ok(await _mediator.Send(command, cancellationToken));
+            var response = await _mediator.Send(command, cancellationToken);
+            return response.IsSuccess ? Ok(response.Data) : BadRequest(response.ErrorMessage);
         }
 
         [HttpPost]

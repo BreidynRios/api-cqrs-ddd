@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Mvc;
 namespace WebApi.Controllers
 {
     [Route("api/v1/securities")]
-    [ApiController]
     public class SecurityController : ControllerBase
     {
         private readonly IMediator _mediator;

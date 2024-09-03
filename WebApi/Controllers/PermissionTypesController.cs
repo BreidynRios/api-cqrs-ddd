@@ -8,7 +8,6 @@ using Microsoft.AspNetCore.Mvc;
 namespace WebApi.Controllers
 {
     [Route("api/v1/permission-types")]
-    [ApiController]
     [Authorize(AuthenticationSchemes =
         $"{GeneralConstants.DEFAULT_SCHEME_BEARER_TOKEN},{GeneralConstants.DEFAULT_SCHEME_API_KEY}")]
     public class PermissionTypesController : ControllerBase
@@ -31,7 +30,8 @@ namespace WebApi.Controllers
         public async Task<ActionResult<GetPermissionTypeByIdDto>> GetPermissionTypeByIdAsync(
             int id, CancellationToken cancellationToken)
         {
-            return Ok(await _mediator.Send(new GetPermissionTypeByIdQuery(id), cancellationToken));
+            var response = await _mediator.Send(new GetPermissionTypeByIdQuery(id), cancellationToken);
+            return response.IsSuccess ? Ok(response.Data) : NotFound(response.ErrorMessage);
         }
     }
 }

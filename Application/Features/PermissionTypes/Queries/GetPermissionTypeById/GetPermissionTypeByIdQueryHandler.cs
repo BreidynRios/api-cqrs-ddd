@@ -1,4 +1,4 @@
-﻿using Application.Commons.Exceptions;
+﻿using Application.DTOs.Response;
 using AutoMapper;
 using Domain.Repositories;
 using MediatR;
@@ -6,7 +6,7 @@ using MediatR;
 namespace Application.Features.PermissionTypes.Queries.GetPermissionTypeById
 {
     public class GetPermissionTypeByIdQueryHandler 
-        : IRequestHandler<GetPermissionTypeByIdQuery, GetPermissionTypeByIdDto>
+        : IRequestHandler<GetPermissionTypeByIdQuery, Result<GetPermissionTypeByIdDto>>
     {
         private readonly IPermissionTypeRepository _permissionTypeRepository;
         private readonly IMapper _mapper;
@@ -19,15 +19,16 @@ namespace Application.Features.PermissionTypes.Queries.GetPermissionTypeById
             _mapper = mapper;
         }
 
-        public async Task<GetPermissionTypeByIdDto> Handle(
+        public async Task<Result<GetPermissionTypeByIdDto>> Handle(
             GetPermissionTypeByIdQuery request, CancellationToken cancellationToken)
         {
             var permissionType = await _permissionTypeRepository
                 .GetByIdAsync(request.Id, cancellationToken);
             if (permissionType is null)
-                throw new NotFoundException("Permission type wasn't found");
+                return Result<GetPermissionTypeByIdDto>.Failure("Permission type wasn't found");
 
-            return _mapper.Map<GetPermissionTypeByIdDto>(permissionType);
+            return Result<GetPermissionTypeByIdDto>
+                .Success(_mapper.Map<GetPermissionTypeByIdDto>(permissionType));
         }
     }
 }

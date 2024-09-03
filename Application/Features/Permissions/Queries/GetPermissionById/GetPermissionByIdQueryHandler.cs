@@ -1,5 +1,5 @@
-﻿using Application.Commons.Exceptions;
-using Application.Commons.Utils;
+﻿using Application.Commons.Utils;
+using Application.DTOs.Response;
 using Application.DTOs.ServicesClients.ElasticSearch;
 using Application.Interfaces.ServicesClients;
 using AutoMapper;
@@ -10,7 +10,7 @@ using MediatR;
 namespace Application.Features.Permissions.Queries.GetPermissionById
 {
     public class GetPermissionByIdQueryHandler
-        : IRequestHandler<GetPermissionByIdQuery, GetPermissionByIdDto>
+        : IRequestHandler<GetPermissionByIdQuery, Result<GetPermissionByIdDto>>
     {
         private readonly IMapper _mapper;
         private readonly IElasticSearchServiceClient _elasticSearchServiceClient;
@@ -26,16 +26,17 @@ namespace Application.Features.Permissions.Queries.GetPermissionById
             _permissionRepository = permissionRepository;
         }
 
-        public async Task<GetPermissionByIdDto> Handle(
+        public async Task<Result<GetPermissionByIdDto>> Handle(
             GetPermissionByIdQuery request, CancellationToken cancellationToken)
         {
             var permission = await _permissionRepository
                 .GetPermissionWithEmployeeTypeAsync(request.Id, cancellationToken);
             if (permission is null)
-                throw new NotFoundException("Permission wasn't found");
+                return Result<GetPermissionByIdDto>.Failure("Permission wasn't found");
 
             await ElasticSearchCreateDocument(permission, cancellationToken);
-            return _mapper.Map<GetPermissionByIdDto>(permission);
+
+            return Result<GetPermissionByIdDto>.Success(_mapper.Map<GetPermissionByIdDto>(permission));
         }
 
         protected internal virtual async Task ElasticSearchCreateDocument(

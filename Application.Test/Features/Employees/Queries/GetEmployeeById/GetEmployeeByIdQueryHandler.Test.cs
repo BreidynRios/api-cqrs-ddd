@@ -1,5 +1,4 @@
-﻿using Application.Commons.Exceptions;
-using Application.Features.Employees.Queries.GetEmployeeById;
+﻿using Application.Features.Employees.Queries.GetEmployeeById;
 using Application.Test.Configurations.AutoMoq;
 using AutoFixture.Xunit2;
 using Domain.Entities;
@@ -25,12 +24,10 @@ namespace Application.Test.Features.Employees.Queries.GetEmployeeById
                 .ReturnsAsync(null as Employee);
 
             //ACT
-            var actual = async () => await sut.Handle(request, CancellationToken.None);
+            var actual = await sut.Handle(request, CancellationToken.None);
 
             //ASSERT
-            await actual.Should()
-                .ThrowAsync<NotFoundException>()
-                .Where(m => m.Message == errorMessage);
+            actual.ErrorMessage.Should().Be(errorMessage);
             mockIEmployeeRepository.Verify(x => x.GetEmployeeWithPermissionsAsync(
                 It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
         }

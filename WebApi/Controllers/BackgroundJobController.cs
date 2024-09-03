@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Mvc;
 namespace WebApi.Controllers
 {
     [Route("api/v1/background-job")]
-    [ApiController]
     [Authorize(AuthenticationSchemes =
         $"{GeneralConstants.DEFAULT_SCHEME_BEARER_TOKEN},{GeneralConstants.DEFAULT_SCHEME_API_KEY}")]
     public class BackgroundJobController : ControllerBase

@@ -1,5 +1,5 @@
-﻿using Application.Commons.Exceptions;
-using Application.Commons.Utils;
+﻿using Application.Commons.Utils;
+using Application.DTOs.Response;
 using Application.DTOs.ServicesClients.ElasticSearch;
 using Application.Interfaces.ServicesClients;
 using Domain.Entities;
@@ -9,7 +9,7 @@ using MediatR;
 namespace Application.Features.Permissions.Commands.CreatePermission
 {
     public class CreatePermissionCommandHandler
-        : IRequestHandler<CreatePermissionCommand, int>
+        : IRequestHandler<CreatePermissionCommand, Result<int>>
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IElasticSearchServiceClient _elasticSearchServiceClient;
@@ -31,29 +31,35 @@ namespace Application.Features.Permissions.Commands.CreatePermission
             _permissionTypeRepository = permissionTypeRepository;
         }
 
-        public async Task<int> Handle(CreatePermissionCommand request,
+        public async Task<Result<int>> Handle(CreatePermissionCommand request,
             CancellationToken cancellationToken)
         {
-            await Validate(request, cancellationToken);
+            var error = await Validate(request, cancellationToken);
+            if (!string.IsNullOrEmpty(error))
+                return Result<int>.Failure(error);
+
             var permission = AssignPermission(request);
             await _permissionRepository.AddAsync(permission, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             await ElasticSearchCreateDocument(permission, cancellationToken);
-            return permission.Id;
+
+            return Result<int>.Success(permission.Id);
         }
 
-        protected internal virtual async Task Validate(CreatePermissionCommand request,
+        protected internal virtual async Task<string> Validate(CreatePermissionCommand request,
             CancellationToken cancellationToken)
         {
             var employee = await _employeeRepository
                 .GetByIdAsync(request.EmployeeId, cancellationToken);
             if (employee is null)
-                throw new NotFoundException("Employee wasn't found");
+                return "Employee wasn't found";
 
             var permissionType = await _permissionTypeRepository
                 .GetByIdAsync(request.PermissionTypeId, cancellationToken);
             if (permissionType is null)
-                throw new NotFoundException("Permission type wasn't found");
+                return "Permission type wasn't found";
+
+            return string.Empty;
         }
 
         protected internal virtual Permission AssignPermission(CreatePermissionCommand request) 
@@ -61,8 +67,7 @@ namespace Application.Features.Permissions.Commands.CreatePermission
             return new()
             {
                 EmployeeId = request.EmployeeId,
-                PermissionTypeId = request.PermissionTypeId,
-                CreatedBy = 1
+                PermissionTypeId = request.PermissionTypeId
             };
         }
 

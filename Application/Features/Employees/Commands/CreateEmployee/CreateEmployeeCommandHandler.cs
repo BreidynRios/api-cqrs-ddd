@@ -1,4 +1,5 @@
-﻿using Application.Events.Messages;
+﻿using Application.DTOs.Response;
+using Application.Events.Messages;
 using Application.Interfaces.ServicesClients;
 using Domain.Entities;
 using Domain.Repositories;
@@ -7,7 +8,7 @@ using MediatR;
 namespace Application.Features.Employees.Commands.CreateEmployee
 {
     public class CreateEmployeeCommandHandler 
-        : IRequestHandler<CreateEmployeeCommand, int>
+        : IRequestHandler<CreateEmployeeCommand, Result<int>>
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IEmployeeRepository _employeeRepository;
@@ -23,7 +24,8 @@ namespace Application.Features.Employees.Commands.CreateEmployee
             _busClientService = busClientService;
         }
 
-        public async Task<int> Handle(CreateEmployeeCommand request, CancellationToken cancellationToken)
+        public async Task<Result<int>> Handle(CreateEmployeeCommand request,
+            CancellationToken cancellationToken)
         {
             var employee = AssignEmployee(request);
             await _employeeRepository.AddAsync(employee, cancellationToken);
@@ -34,7 +36,8 @@ namespace Application.Features.Employees.Commands.CreateEmployee
                 Id = employee.Id,
                 Name = employee.Name
             }, cancellationToken);
-            return employee.Id;
+
+            return Result<int>.Success(employee.Id);
         }
 
         protected virtual internal Employee AssignEmployee(CreateEmployeeCommand request)
@@ -44,8 +47,7 @@ namespace Application.Features.Employees.Commands.CreateEmployee
                 Name = request.Name,
                 Surname = request.Surname,
                 DocumentNumber = request.DocumentNumber,
-                Address = request.Address,
-                CreatedBy = 1
+                Address = request.Address
             };
         }
     }

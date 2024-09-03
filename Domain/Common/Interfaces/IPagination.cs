@@ -4,6 +4,8 @@
     {
         int? PageSize { get; set; }
         int? Page { get; set; }
+        bool? IsAscending { get; set; }
+        string? SortingField { get; set; }
         bool IsValid();
     }
 }

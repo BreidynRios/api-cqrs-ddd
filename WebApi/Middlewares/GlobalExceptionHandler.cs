@@ -24,6 +24,7 @@ namespace WebApi.Middlewares
 
             _logger.LogError(exception, "Error: {Message}", resultError.Detail);
 
+            httpContext.Response.StatusCode = resultError.Status!.Value;
             await httpContext.Response.WriteAsJsonAsync(resultError, cancellationToken);
 
             return true;

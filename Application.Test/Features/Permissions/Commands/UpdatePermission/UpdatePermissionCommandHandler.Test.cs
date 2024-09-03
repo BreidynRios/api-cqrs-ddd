@@ -1,5 +1,4 @@
-﻿using Application.Commons.Exceptions;
-using Application.DTOs.ServicesClients.ElasticSearch;
+﻿using Application.DTOs.ServicesClients.ElasticSearch;
 using Application.Features.Permissions.Commands.UpdatePermission;
 using Application.Interfaces.ServicesClients;
 using Application.Test.Configurations.AutoMoq;
@@ -16,6 +15,25 @@ namespace Application.Test.Features.Permissions.Commands.UpdatePermission
     {
         #region Handle
 
+        [Theory(DisplayName = "When there is an error in validation, it will finish the process"), AutoMoq]
+        public async Task Handle_Error(
+            string error,
+            UpdatePermissionCommand request,
+            [Frozen] Mock<UpdatePermissionCommandHandler> sutMock)
+        {
+            //ARRANGE
+            sutMock.Setup(x => x.Validate(It.IsAny<UpdatePermissionCommand>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((error, null));
+
+            //ACT
+            var actual = await sutMock.Object.Handle(request, CancellationToken.None);
+
+            //ASSERT
+            Assert.Equal(error, actual.ErrorMessage);
+            sutMock.Verify(x => x.Validate(It.IsAny<UpdatePermissionCommand>(),
+                It.IsAny<CancellationToken>()), Times.Once);
+        }
+
         [Theory(DisplayName = "When the process is successful, it will return the id"), AutoMoq]
         public async Task Handle_Ok(
             Permission permission,
@@ -25,10 +43,7 @@ namespace Application.Test.Features.Permissions.Commands.UpdatePermission
         {
             //ARRANGE
             sutMock.Setup(x => x.Validate(It.IsAny<UpdatePermissionCommand>(), It.IsAny<CancellationToken>()))
-                .Returns(Task.CompletedTask);
-
-            mockIPermissionRepository.Setup(x => x.GetByIdAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(permission);
+                .ReturnsAsync((string.Empty, permission));
 
             sutMock.Setup(x => x.AssignPermission(It.IsAny<Permission>(), It.IsAny<UpdatePermissionCommand>()));
 
@@ -42,8 +57,6 @@ namespace Application.Test.Features.Permissions.Commands.UpdatePermission
 
             //ASSERT
             sutMock.Verify(x => x.Validate(It.IsAny<UpdatePermissionCommand>(), It.IsAny<CancellationToken>()), Times.Once);
-            mockIPermissionRepository.Verify(x => x.GetByIdAsync(
-                It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
             sutMock.Verify(x => x.AssignPermission(It.IsAny<Permission>(), It.IsAny<UpdatePermissionCommand>()), Times.Once);
             mockIPermissionRepository.Verify(x => x.Update(It.IsAny<Permission>()), Times.Once);
             sutMock.Verify(x => x.ElasticSearchCreateDocument(
@@ -66,12 +79,11 @@ namespace Application.Test.Features.Permissions.Commands.UpdatePermission
                 .ReturnsAsync(null as Employee);
 
             //ACT
-            var actual = async () => await sut.Validate(request, CancellationToken.None);
+            var actual = await sut.Validate(request, CancellationToken.None);
 
             //ASSERT
-            await actual.Should()
-                .ThrowAsync<NotFoundException>()
-                .Where(m => m.Message == errorMessage);
+            actual.Item1.Should().Be(errorMessage);
+            actual.Item2.Should().BeNull();
             mockIEmployeeRepository.Verify(x => x.GetByIdAsync(
                 It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
         }
@@ -95,15 +107,52 @@ namespace Application.Test.Features.Permissions.Commands.UpdatePermission
                 .ReturnsAsync(null as PermissionType);
 
             //ACT
-            var actual = async () => await sut.Validate(request, CancellationToken.None);
+            var actual = await sut.Validate(request, CancellationToken.None);
 
             //ASSERT
-            await actual.Should()
-                .ThrowAsync<NotFoundException>()
-                .Where(m => m.Message == errorMessage);
+            actual.Item1.Should().Be(errorMessage);
+            actual.Item2.Should().BeNull();
             mockIEmployeeRepository.Verify(x => x.GetByIdAsync(
                 It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
             mockIPermissionTypeRepository.Verify(x => x.GetByIdAsync(
+                It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Theory(DisplayName = "When permission don't exist, it will return an error"), AutoMoq]
+        public async Task Validate_Permission_NotFound(
+            Employee employee,
+            PermissionType permissionType,
+            [Frozen] Mock<IEmployeeRepository> mockIEmployeeRepository,
+            [Frozen] Mock<IPermissionTypeRepository> mockIPermissionTypeRepository,
+            [Frozen] Mock<IPermissionRepository> mockIPermissionRepository,
+            UpdatePermissionCommand request,
+            UpdatePermissionCommandHandler sut)
+        {
+            //ARRANGE
+            const string errorMessage = "Permission wasn't found";
+            mockIEmployeeRepository.Setup(x => x.GetByIdAsync(
+                It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(employee);
+
+            mockIPermissionTypeRepository.Setup(x => x.GetByIdAsync(
+                It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(permissionType);
+
+            mockIPermissionRepository.Setup(x => x.GetByIdAsync(
+                It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(null as Permission);
+
+            //ACT
+            var actual = await sut.Validate(request, CancellationToken.None);
+
+            //ASSERT
+            actual.Item1.Should().Be(errorMessage);
+            actual.Item2.Should().BeNull();
+            mockIEmployeeRepository.Verify(x => x.GetByIdAsync(
+                It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
+            mockIPermissionTypeRepository.Verify(x => x.GetByIdAsync(
+                It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
+            mockIPermissionRepository.Verify(x => x.GetByIdAsync(
                 It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
         }
 
@@ -111,8 +160,10 @@ namespace Application.Test.Features.Permissions.Commands.UpdatePermission
         public async Task Validate_Ok(
             Employee employee,
             PermissionType permissionType,
+            Permission permission,
             [Frozen] Mock<IEmployeeRepository> mockIEmployeeRepository,
             [Frozen] Mock<IPermissionTypeRepository> mockIPermissionTypeRepository,
+            [Frozen] Mock<IPermissionRepository> mockIPermissionRepository,
             UpdatePermissionCommand request,
             UpdatePermissionCommandHandler sut)
         {
@@ -125,6 +176,10 @@ namespace Application.Test.Features.Permissions.Commands.UpdatePermission
                 It.IsAny<int>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(permissionType);
 
+            mockIPermissionRepository.Setup(x => x.GetByIdAsync(
+                It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(permission);
+
             //ACT
             await sut.Validate(request, CancellationToken.None);
 
@@ -132,6 +187,8 @@ namespace Application.Test.Features.Permissions.Commands.UpdatePermission
             mockIEmployeeRepository.Verify(x => x.GetByIdAsync(
                 It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
             mockIPermissionTypeRepository.Verify(x => x.GetByIdAsync(
+                It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
+            mockIPermissionRepository.Verify(x => x.GetByIdAsync(
                 It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
         }
 

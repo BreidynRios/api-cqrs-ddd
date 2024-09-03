@@ -1,5 +1,4 @@
-﻿using Application.Commons.Exceptions;
-using Application.Features.PermissionTypes.Queries.GetPermissionTypeById;
+﻿using Application.Features.PermissionTypes.Queries.GetPermissionTypeById;
 using Application.Test.Configurations.AutoMoq;
 using AutoFixture.Xunit2;
 using Domain.Entities;
@@ -25,12 +24,10 @@ namespace Application.Test.Features.PermissionTypes.Queries.GetPermissionTypeByI
                 .ReturnsAsync(null as PermissionType);
 
             //ACT
-            var actual = async () => await sut.Handle(request, CancellationToken.None);
+            var actual = await sut.Handle(request, CancellationToken.None);
 
             //ASSERT
-            await actual.Should()
-                .ThrowAsync<NotFoundException>()
-                .Where(m => m.Message == errorMessage);
+            actual.ErrorMessage.Should().Be(errorMessage);
             mockIPermissionTypeRepository.Verify(x => x.GetByIdAsync(It.IsAny<int>(),
                 It.IsAny<CancellationToken>()), Times.Once);
         }
