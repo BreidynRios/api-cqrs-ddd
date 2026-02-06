@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Persistence.Context;
 using Persistence.Interceptors;
 using Persistence.Repositories;
+using Persistence.Seeders;
 
 namespace Persistence.Extensions
 {
@@ -14,6 +15,7 @@ namespace Persistence.Extensions
         {
             services.AddDbContext(configuration);
             services.AddRepositories();
+            services.AddSeeders();
         }
 
         public static void AddDbContext(this IServiceCollection services, IConfiguration configuration)
@@ -31,11 +33,19 @@ namespace Persistence.Extensions
         private static void AddRepositories(this IServiceCollection services)
         {
             services
-                .AddTransient(typeof(IRepository<>), typeof(BaseRepository<>))
-                .AddTransient<IUnitOfWork, UnitOfWork>()
-                .AddTransient<IEmployeeRepository, EmployeeRepository>()
-                .AddTransient<IPermissionRepository, PermissionRepository>()
-                .AddTransient<IPermissionTypeRepository, PermissionTypeRepository>();
+                .AddScoped(typeof(IRepository<>), typeof(BaseRepository<>))
+                .AddScoped<IUnitOfWork, UnitOfWork>()
+                .AddScoped<IEmployeeRepository, EmployeeRepository>()
+                .AddScoped<IPermissionRepository, PermissionRepository>()
+                .AddScoped<IPermissionTypeRepository, PermissionTypeRepository>();
+        }
+
+        private static void AddSeeders(this IServiceCollection services)
+        {
+            services
+                .AddScoped<IDataSeeder, PermissionTypeSeeder>()
+                .AddScoped<IDataSeeder, EmployeeSeeder>()
+                .AddScoped<DefaultDataSeeder>();
         }
     }
 }

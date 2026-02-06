@@ -1,41 +1,13 @@
-version: "3.4"
+name: ManageEmployees.API
 
 networks:
   net-api-cqrs-ddd:
     driver: bridge
-
-volumes:
-  sql-server-data:
-    driver: local
-  elastic-search-data:
-    driver: local
-  redis-data:
-    driver: local
-  redis-insight-data:
-    driver: local
-  rabbit-data:
-    driver: local
+  observability-net:
+    external: true
     
 services:
-  sql-server:
-    container_name: sql-server-container
-    image: mcr.microsoft.com/mssql/server:2017-latest
-    ports:
-      - 1436:1433
-    environment:
-      - ACCEPT_EULA=Y
-      - MSSQL_PID=Express
-      - MSSQL_SA_PASSWORD=Qwerty123456@
-    volumes:
-      - sql-server-data:/var/opt/mssql/data
-    networks:
-      - net-api-cqrs-ddd
-    healthcheck:
-      test: /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "Qwerty123456@" -Q "USE master; SELECT GETDATE()" || exit 1
-      interval: 10s
-      timeout: 30s
-      retries: 2
-      
+
   web-api:
     container_name: web-api-container
     image: api-cqrs-ddd
@@ -54,6 +26,7 @@ services:
       retries: 3
     networks:
       - net-api-cqrs-ddd
+      - observability-net
     depends_on:
       sql-server:
         condition: service_healthy
@@ -62,16 +35,24 @@ services:
       # kafka:
       #   condition: service_healthy
 
-  init-db:
-    container_name: init-db-container
-    image: mcr.microsoft.com/mssql-tools
+  sql-server:
+    container_name: sql-server-container
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    ports:
+      - 1433:1433
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=Passw0rd!
     volumes:
-      - ./InitDB:/init
+      - D:/Docker/volumes/api-cqrs-ddd/sqlserver/data:/var/opt/mssql/data
+      # - sql-server-data:/var/opt/mssql/data
     networks:
       - net-api-cqrs-ddd
-    depends_on:
-      - web-api
-    command: /bin/bash -c "/opt/mssql-tools/bin/sqlcmd -S sql-server-container -U sa -P Qwerty123456@ -i /init/init-script.sql"
+    healthcheck:
+      test: /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "Passw0rd!" -Q "USE master; SELECT GETDATE()" || exit 1
+      interval: 10s
+      timeout: 30s
+      retries: 2
     
   elastic-search:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.17.15
@@ -87,7 +68,7 @@ services:
       retries: 3
       start_period: 10s
     volumes:
-      - elastic-search-data:/usr/share/elasticsearch/data
+      - D:/Docker/volumes/api-cqrs-ddd/elasticsearch/data:/usr/share/elasticsearch/data
     networks:
       - net-api-cqrs-ddd
 
@@ -110,7 +91,7 @@ services:
     ports:
       - 6379:6379
     volumes:
-      - redis-data:/data
+      - D:/Docker/volumes/api-cqrs-ddd/redis/data:/data
     networks:
       - net-api-cqrs-ddd
 
@@ -120,7 +101,7 @@ services:
     ports:
       - 5540:5540
     volumes:
-      - redis-insight-data:/db-data
+      - D:/Docker/volumes/api-cqrs-ddd/redis-insight/data:/db-data
     depends_on:
       - redis
     networks:
@@ -136,7 +117,7 @@ services:
       - 5672:5672
       - 15672:15672
     volumes:
-      - rabbit-data:/var/lib/rabbitmq
+      - D:/Docker/volumes/api-cqrs-ddd/rabbit/data:/var/lib/rabbitmq
     networks:
       - net-api-cqrs-ddd
 

@@ -32,6 +32,9 @@ namespace Application.Commons.Behaviors
             var response = await next();
             if (response is null) return response;
 
+            if (response is IEnumerable<object> enumerable && !enumerable.Cast<object>().Any())
+                return response;
+
             var options = new DistributedCacheEntryOptions
             {
                 SlidingExpiration = request.Expiration,

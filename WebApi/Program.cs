@@ -6,9 +6,11 @@ using Persistence.Extensions;
 using WebApi.Extensions;
 
 const string CORS_POLICY = "CorsPolicy";
+const string LOCAL_ENVIRONMENT = "Local";
 const string DOCKER_ENVIRONMENT = "Docker";
 
 var builder = WebApplication.CreateBuilder(args);
+Console.WriteLine($"Environment: {builder.Environment.EnvironmentName}");
 
 var environment = builder.Environment;
 
@@ -24,6 +26,7 @@ builder.Services.AddEndpointsApiExplorer();
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment() 
+    || app.Environment.IsEnvironment(LOCAL_ENVIRONMENT)
     || app.Environment.IsEnvironment(DOCKER_ENVIRONMENT))
 {
     app.UseSwagger()
@@ -43,6 +46,6 @@ app.MapHub<ApplicationHub>("/hub");
 
 app.MapControllers();
 
-app.MigrateDatabase<ManageEmployeesContext>(builder.Configuration);
+await app.MigrateDatabase<ManageEmployeesContext>(builder.Configuration);
 
 await app.RunAsync();

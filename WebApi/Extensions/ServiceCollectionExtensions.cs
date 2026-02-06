@@ -6,8 +6,11 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
+using Persistence.Seeders;
 using Serilog;
-using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using WebApi.Middlewares;
 using WebApi.Middlewares.Security;
@@ -16,19 +19,24 @@ namespace WebApi.Extensions
 {
     public static class ServiceCollectionExtensions
     {
-        public static void AddPresentationLayer(this IServiceCollection services,
-            IConfiguration configuration, string policyName)
+        public static void AddPresentationLayer(
+            this IServiceCollection services,
+            IConfiguration configuration,
+            string policyName)
         {
             services.ConfigureHttpClient();
             services.AddCors(configuration, policyName);
             services.AddSecurityBearerAndApiKey(configuration);
-            services.AddSwagger();
+            services.AddSwagger(configuration);
             services.AddLoggerSeriLog(configuration);
+            services.AddTelemetry(configuration);
             services.AddExceptionHandler<GlobalExceptionHandler>();
-            services.AddProblemDetails();
+            services.AddProblemDetails();            
         }
 
-        private static void AddLoggerSeriLog(this IServiceCollection services, IConfiguration configuration)
+        private static void AddLoggerSeriLog(
+            this IServiceCollection services,
+            IConfiguration configuration)
         {
             var logger = new LoggerConfiguration()
                 .WriteTo.Elasticsearch([new Uri(configuration["ServicesClients:ElasticSearchServices:Host"]!)])
@@ -42,20 +50,25 @@ namespace WebApi.Extensions
             });
         }
 
-        public static IHost MigrateDatabase<T>(this IHost host, IConfiguration configuration) where T : DbContext
+        public static async Task<IHost> MigrateDatabase<T>(
+            this IHost host,
+            IConfiguration configuration) where T : DbContext
         {
-            if (!Convert.ToBoolean(configuration["ApplyMigration"]))
-                return host;
-            
             using (var scope = host.Services.CreateScope())
             {
                 var services = scope.ServiceProvider;
                 var logger = services.GetRequiredService<ILogger<Program>>();
                 try
                 {
-                    logger.LogInformation("Start migrating for docker");
+                    logger.LogInformation("Starting database migration");
                     var db = services.GetRequiredService<T>();
                     db.Database.Migrate();
+                    logger.LogInformation("Finished database migration");
+
+                    logger.LogInformation("Starting data seeding");
+                    var seeder = services.GetRequiredService<DefaultDataSeeder>();
+                    await seeder.SeedAsync();
+                    logger.LogInformation("Finished data seeding");
                 }
                 catch (Exception ex)
                 {
@@ -65,8 +78,10 @@ namespace WebApi.Extensions
             return host;
         }
 
-        private static void AddCors(this IServiceCollection services,
-            IConfiguration configuration, string policyName)
+        private static void AddCors(
+            this IServiceCollection services,
+            IConfiguration configuration,
+            string policyName)
         {
             var authorizedCorsOrigins = configuration.GetSection("Security:Cors:AuthorizedOrigins")
                 .Get<List<string>>();
@@ -84,7 +99,8 @@ namespace WebApi.Extensions
             });
         }
 
-        private static void ConfigureHttpClient(this IServiceCollection services)
+        private static void ConfigureHttpClient(
+            this IServiceCollection services)
         {
             var socketsHandler = new SocketsHttpHandler
             {
@@ -96,16 +112,23 @@ namespace WebApi.Extensions
             services.AddSingleton(sharedClient);
         }
 
-        private static void AddSwagger(this IServiceCollection services)
+        private static void AddSwagger(
+            this IServiceCollection services,
+            IConfiguration configuration)
         {
             services.AddSwaggerGen(c =>
             {
-                c.SwaggerDoc("v1", new OpenApiInfo { Title = "Api CQRS DDD", Version = "v1" });
+                c.SwaggerDoc("v1",
+                    new OpenApiInfo
+                    { 
+                        Title = configuration["Application:Name"]!,
+                        Version = configuration["Application:Version"]!
+                    });
                 c.AddSecurityDefinition("X-Api-Key", new OpenApiSecurityScheme
                 {
                     Name = "X-Api-Key",
                     Description = "ApiKey must appear in header",
-                    Type = SecuritySchemeType.ApiKey,                    
+                    Type = SecuritySchemeType.ApiKey,
                     In = ParameterLocation.Header,
                     Scheme = "ApiKeyScheme"
                 });
@@ -125,11 +148,11 @@ namespace WebApi.Extensions
                 c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                 {
                     Name = "Authorization",
-                    Description = "Add valid token",                    
+                    Description = "Add valid token",
                     Type = SecuritySchemeType.Http,
                     In = ParameterLocation.Header,
                     Scheme = "Bearer",
-                    BearerFormat = "JWT"                    
+                    BearerFormat = "JWT"
                 });
                 var bearer = new OpenApiSecurityScheme
                 {
@@ -146,7 +169,8 @@ namespace WebApi.Extensions
             });
         }
 
-        private static void AddSecurityBearerAndApiKey(this IServiceCollection services,
+        private static void AddSecurityBearerAndApiKey(
+            this IServiceCollection services,
             IConfiguration configuration)
         {
             services.Configure<SecuritySettings>(configuration.GetSection("Security"));
@@ -177,6 +201,45 @@ namespace WebApi.Extensions
                     GeneralConstants.DEFAULT_SCHEME_BEARER_TOKEN, _ => { })
                 .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(
                     GeneralConstants.DEFAULT_SCHEME_API_KEY, _ => { });
+        }
+
+        private static void AddTelemetry(
+            this IServiceCollection services,
+            IConfiguration configuration)
+        {
+            var hostTelemetry = configuration["Telemetry:Host"]!;
+
+            services.AddOpenTelemetry()
+                .ConfigureResource(r => r.AddService(configuration["Application:Name"]!))
+                .WithTracing(t => t
+                    .AddAspNetCoreInstrumentation()
+                    .AddHttpClientInstrumentation()
+                    .AddEntityFrameworkCoreInstrumentation(opt =>
+                    {
+                        opt.SetDbStatementForText = true;
+                    })
+                    .AddSqlClientInstrumentation(opt =>
+                    {
+                        opt.RecordException = true;
+                        opt.EnrichWithSqlCommand = (activity, command) =>
+                        {
+                            activity.SetTag("db.statement", command);
+                        };
+                    })
+                    .AddOtlpExporter(o =>
+                    {
+                        o.Endpoint = new Uri(hostTelemetry);
+                        o.Protocol = OpenTelemetry.Exporter.OtlpExportProtocol.Grpc;
+                    }))
+                .WithMetrics(m => m
+                    .AddAspNetCoreInstrumentation()
+                    .AddHttpClientInstrumentation()
+                    .AddRuntimeInstrumentation()
+                    .AddOtlpExporter(o =>
+                    {
+                        o.Endpoint = new Uri(hostTelemetry);
+                        o.Protocol = OpenTelemetry.Exporter.OtlpExportProtocol.Grpc;
+                    }));
         }
     }
 }

@@ -4,12 +4,12 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace WebApi.Controllers
 {
-    [Route("api/v1/securities")]
-    public class SecurityController : ControllerBase
+    [Route("api/v1/auth")]
+    public class AuthController : ControllerBase
     {
         private readonly IMediator _mediator;
 
-        public SecurityController(IMediator mediator)
+        public AuthController(IMediator mediator)
         {
             _mediator = mediator;
         }
